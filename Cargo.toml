@@ -1,0 +1,13 @@
+[package]
+name = "frust"
+version = "0.1.0"
+authors = ["Timm Behner <behner@cs.uni-bonn.de>"]
+
+[dependencies]
+clap = ">=2.21.2"
+walkdir = "1"
+regex = ">=0.2"
+
+[dependencies.nom]
+version = "^2.2"
+features = ["regexp", "regexp_macros"]
