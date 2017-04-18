@@ -3,10 +3,24 @@ name = "frust"
 version = "0.1.0"
 authors = ["Timm Behner <behner@cs.uni-bonn.de>"]
 
+[lib]
+name = "frustlib"
+path = "src/lib.rs"
+
+[[bin]]
+name = "frust"
+path = "src/main.rs"
+
 [dependencies]
 clap = ">=2.21.2"
 walkdir = "1"
 regex = ">=0.2"
+log = "0.3"
+env_logger = ">=0.4.2"
+pretty-bytes = "0.2.1"
+chrono = "0.3.0"
+mime_guess = "1.8.1"
+liquid = "0.9"
 
 [dependencies.nom]
 version = "^2.2"

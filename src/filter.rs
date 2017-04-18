@@ -1,26 +1,30 @@
-use std::fmt;
-use std::cmp;
+use walkdir::DirEntry;
 
-pub struct Filter {
-    attribute: String,
-    op       : String,
-    param    : String,
+#[derive(Debug)]
+#[derive(PartialEq)]
+pub enum CompOp {
+    Lower,
+    LowerEqual,
+    Equal,
+    GreaterEqual,
+    Greater,
+    Like,
 }
 
-impl Filter {
-    pub fn new(attribute: String, op: String, param: String) -> Filter {
-        return Filter{attribute: attribute, op: op, param: param};
-    }
+#[derive(Debug)]
+#[derive(PartialEq)]
+pub enum Attribute {
+    Name,
+    Size,
+    Mtime,
+    Ctime,
+    Atime,
+    Filetype,
+    Mimetype,
+    Inode,
+    Basename,
 }
 
-impl fmt::Debug for Filter {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
-        write!(f, "Filter{{ attribute: {}, op: {}, param: {} }}", self.attribute, self.op, self.param)
-    }
-}
-
-impl cmp::PartialEq for Filter {
-    fn eq(&self, other: &Filter) -> bool {
-        self.attribute == other.attribute && self.op == other.op && self.param == other.param
-    }
+pub trait Filter{
+    fn test(&self, dir_entry: &DirEntry) -> bool;
 }
