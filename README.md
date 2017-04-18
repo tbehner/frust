@@ -1,6 +1,11 @@
 # frust
 A find replacement with SQL-like syntax.
 
+*Note:* frust has a *pre-alpha* status and has a lot of bugs, issues and missing features.
+We are grateful for every opened issue, pull request or idea.
+Additionally this project was written while learning a good part of the [Rust programming language](https://www.rust-lang.org/en-US/).
+Hence the quality of code will hopefully improve while learning more about Rust.
+
 ## About
 The find command as found on all (?) unixy operating systems is awesome. The problem is, that the syntax is apparently hard to remember.
 A proof of this are anti-patterns like `find . | grep 'some regular expression'` which are commonly seen (but seldom admitted).
