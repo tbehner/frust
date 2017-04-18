@@ -23,3 +23,4 @@ pub mod regex_filter;
 pub mod name_filter;
 pub mod size_filter;
 pub mod time_filter;
+pub mod filetype_filter;

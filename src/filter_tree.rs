@@ -7,6 +7,7 @@ use name_filter::EqualNameFilter;
 use name_filter::EqualBasenameFilter;
 use size_filter::SizeFilter;
 use time_filter::TimeFilter;
+use filetype_filter::FiletypeFilter;
 use walkdir::DirEntry;
 
 #[derive(Debug)]
@@ -55,6 +56,9 @@ pub fn create_filter(inp: FilterTuple) -> Box<Filter> {
         },
         Attribute::Ctime => {
             Box::new(TimeFilter::new(inp.attribute, inp.operator, inp.parameter.as_str()))
+        },
+        Attribute::Filetype => {
+            Box::new(FiletypeFilter::new(inp.parameter.as_str()))
         },
         _               => panic!("Not yet implemented!"),
     }
