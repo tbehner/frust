@@ -1,8 +1,7 @@
 use filter::Filter;
 use filter::CompOp;
 use filter::Attribute;
-use regex_filter::RegexNameFilter;
-use regex_filter::RegexBasenameFilter;
+use regex_filter::RegexFilter;
 use name_filter::EqualNameFilter;
 use name_filter::EqualBasenameFilter;
 use size_filter::SizeFilter;
@@ -18,9 +17,9 @@ pub enum LogicOp {
 }
 
 pub struct FilterTuple {
-    attribute: Attribute,
-    operator : CompOp,
-    parameter: String,
+    pub attribute: Attribute,
+    pub operator : CompOp,
+    pub parameter: String,
 }
 
 impl FilterTuple {
@@ -34,14 +33,16 @@ pub fn create_filter(inp: FilterTuple) -> Box<Filter> {
         Attribute::Name => {
             match inp.operator {
                 CompOp::Equal => Box::new(EqualNameFilter::new(inp.parameter.as_str())),
-                CompOp::Like => Box::new(RegexNameFilter::new(inp.parameter.as_str())),
+                CompOp::Like => Box::new(RegexFilter::new(&inp)),
+                CompOp::Unlike => Box::new(RegexFilter::new(&inp)),
                 _            => panic!("Operator is not implemented for attribute."),
             }
         },
         Attribute::Basename => {
             match inp.operator {
                 CompOp::Equal => Box::new(EqualBasenameFilter::new(inp.parameter.as_str())),
-                CompOp::Like => Box::new(RegexBasenameFilter::new(inp.parameter.as_str())),
+                CompOp::Like => Box::new(RegexFilter::new(&inp)),
+                CompOp::Unlike => Box::new(RegexFilter::new(&inp)),
                 _            => panic!("Operator is not implemented for attribute."),
             }
         },

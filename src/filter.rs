@@ -1,16 +1,20 @@
 use walkdir::DirEntry;
 
+#[derive(Clone)]
 #[derive(Debug)]
 #[derive(PartialEq)]
 pub enum CompOp {
     Lower,
     LowerEqual,
     Equal,
+    Unequal,
     GreaterEqual,
     Greater,
     Like,
+    Unlike,
 }
 
+#[derive(Clone)]
 #[derive(Debug)]
 #[derive(PartialEq)]
 pub enum Attribute {

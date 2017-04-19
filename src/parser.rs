@@ -15,9 +15,11 @@ named!(comp_op<filter::CompOp>, alt!(
           tag!("<")  => { |_| filter::CompOp::Lower }  
         | tag!("<=") => { |_| filter::CompOp::LowerEqual }
         | tag!("==") => { |_| filter::CompOp::Equal }
+        | tag!("not =") => { |_| filter::CompOp::Equal }
         | tag!(">=") => { |_| filter::CompOp::GreaterEqual }
         | tag!(">")  => { |_| filter::CompOp::Greater }
         | tag!("~")  => { |_| filter::CompOp::Like }
+        | tag!("not ~")  => { |_| filter::CompOp::Unlike }
         )
     );
 
