@@ -54,7 +54,7 @@ named!(attribute<filter::Attribute>,
 
 named!(directory<String>, 
        do_parse!(
-           dir: re_bytes_find!("(/)?([^/\0,; ]+(/)?)+") >>
+           dir: re_bytes_find!("/|(/)?([^/\0,; ]+(/)?)+") >>
            (String::from_utf8_lossy(dir).into_owned())
        )
    );
