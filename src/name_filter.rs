@@ -13,7 +13,12 @@ impl EqualNameFilter {
 
 impl Filter for EqualNameFilter {
     fn test(&self, dir_entry: &DirEntry) -> bool {
-        self.string == dir_entry.path().to_str().unwrap()
+        let attr = dir_entry.path().to_str();
+        if attr.is_none() {
+            println!("UTF-8 Error");
+            return false;
+        }
+        self.string == attr.unwrap()
     }
 }
 
@@ -29,6 +34,12 @@ impl EqualBasenameFilter {
 
 impl Filter for EqualBasenameFilter {
     fn test(&self, dir_entry: &DirEntry) -> bool {
-        self.string == dir_entry.file_name().to_str().unwrap()
+        let attr = dir_entry.file_name().to_str();
+        if attr.is_none() {
+            println!("UTF-8 Error");
+            return false;
+        }
+
+        self.string == attr.unwrap()
     }
 }
