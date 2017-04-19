@@ -24,7 +24,7 @@ cp ./target/release/frust $HOME/bin
 ```
 
 ### Pre-compiled binaries
-...comming soon.
+Check the releases for precompiled binaries.
 
 ## Introduction
 The basic syntax of frust follows a SQL-like query syntax
@@ -61,6 +61,7 @@ For example
 frust "name where name ~ '^\.git'"
 ```
 returns all files, where the path starts with a '.git' such as '.git/' or '.gitignore'.
+Take a look at the [documentation](https://doc.rust-lang.org/regex/regex/index.html) of the regex crate to see which regular expressions are supported.
 
 The size attribute can be compared with filesizes written as [number][unit], with units b, k, M, G, T (bytes, kilo bytes, mega bytes, giga bytes and terra bytes respectively) supported currently.
 Some examples:
@@ -79,7 +80,19 @@ For example
 ```
 frust "name where mtime < -1m"
 ```
-prints all files which where modified less then a minute ago. 
+prints all files which where modified less then a minute ago,
+```
+frust "name where mtime > 2017-01-01"
+```
+prints all files which where modified after the 1st of January 2017,
+```
+frust "name where mtime > 17:00"
+```
+prints all files which where modified after 17:00 (or 5pm) and
+```
+frust "name where mtime > 2017-01-01 17:00"
+```
+prints all files which where modified after 1st of January 2017 at 17:00 (or 5pm).
 
 The command in the exec part is executed for each file, which passes the filter expression.
 For using the attributes of the found file, frust uses the [liquid template engine](https://shopify.github.io/liquid/).
@@ -89,6 +102,6 @@ frust "where name '\.rar$' and mtime < -1D exec rm {{name}}"
 ```
 deletes all rar-archives which are older than a day or
 ```
-frust "where name '\.jpg$ exec cp {{name}} {{name | remove_first: "." | prepend: /media/backup | append: ".backup"}}' 
+frust "where name '\.jpg$' exec cp {{name}} {{name | remove_first: "." | prepend: /media/backup | append: ".backup"}}" 
 ```
 moves all jpg to `/media/backup` and appends the file extension `backup`.
