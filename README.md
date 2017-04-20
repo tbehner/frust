@@ -12,7 +12,7 @@ For news see our [github.io page](https://tbehner.github.io/frust-blog/).
 The find command as found on all (?) unixy operating systems is awesome. The problem is, that the syntax is apparently hard to remember.
 A proof of this are anti-patterns like `find . | grep 'some regular expression'` which are commonly seen (but seldom admitted).
 To find the desired functionality in the man page of find takes to much time.
-One night we got frustrated enough (hence the name), to write our own furst, with a query language which is easy to remember.
+One night we got frustrated enough (hence the name), to write our own frust, with a query language which is easy to remember.
 
 ## Installation
 ### From Source
@@ -31,14 +31,14 @@ Check the download section on the [github.io page](https://tbehner.github.io/fru
 ## Introduction
 The basic syntax of frust follows a SQL-like query syntax
 ```
-furst "[attributes] from [directories] where [filter expression] exec [command];"
+frust "[attributes] from [directories] where [filter expression] exec [command];"
 ```
 The semicolon at the end of the query is optional and, if not present, gets appended automatically.
 All parts of the query are optional too, e.g. the following queries are also possible
 ```
-furst "where [filter expression];"
-furst "[attributes] where [filter expression] exec [command];"
-furst "exec [command];"
+frust "where [filter expression];"
+frust "[attributes] where [filter expression] exec [command];"
+frust "exec [command];"
 ```
 The missing parts are filled with defaults which resemble the behaviour of the original find command.
 
