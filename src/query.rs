@@ -65,11 +65,16 @@ impl Query {
 
     pub fn parse(inp: &str) -> Query {
         match parser::query(inp.as_bytes()){
-            IResult::Done(_, q)     => q,
-            IResult::Error(e)       => panic!("Syntax error {}", e),
-            IResult::Incomplete(n)  => match n {
-                    Needed::Unknown => panic!("Need more input, but I haven't got a clou how much!"),
-                    Needed::Size(n) => panic!("Need {}bytes more input!", n),
+            IResult::Done(leftovers, q)     => {
+                if leftovers.len() > 1 {
+                    panic!("Could not parse from here -> {}\nDid you make a typo?\n\n", String::from_utf8_lossy(leftovers).into_owned());
+                };
+                q
+            },
+            IResult::Error(e)               => panic!("Syntax error {}", e),
+            IResult::Incomplete(n)          => match n {
+                    Needed::Unknown         => panic!("Need more input, but I haven't got a clou how much!"),
+                    Needed::Size(n)         => panic!("Need {}bytes more input!", n),
                 },
         }
     }

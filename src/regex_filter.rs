@@ -12,8 +12,6 @@ pub struct RegexFilter {
 
 impl RegexFilter {
     pub fn new(ft: &FilterTuple) -> RegexFilter {
-        println!("Got operator {:?}", ft.operator);
-        println!("Got parameter {}", ft.parameter);
         let re = match Regex::new(&ft.parameter) {
             Ok(r) => r,
             Err(e) => panic!("Regex error {}", e),
