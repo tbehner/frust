@@ -6,6 +6,8 @@ We are grateful for every opened issue, pull request or idea.
 Additionally this project was written while learning a good part of the [Rust programming language](https://www.rust-lang.org/en-US/).
 Hence the quality of code will hopefully improve while learning more about Rust.
 
+For news see our [github.io page](https://tbehner.github.io/frust-blog/).
+
 ## About
 The find command as found on all (?) unixy operating systems is awesome. The problem is, that the syntax is apparently hard to remember.
 A proof of this are anti-patterns like `find . | grep 'some regular expression'` which are commonly seen (but seldom admitted).
@@ -24,7 +26,7 @@ cp ./target/release/frust $HOME/bin
 ```
 
 ### Pre-compiled binaries
-Check the releases for precompiled binaries.
+Check the download section on the [github.io page](https://tbehner.github.io/frust-blog/) or the releases for precompiled binaries.
 
 ## Introduction
 The basic syntax of frust follows a SQL-like query syntax
