@@ -57,9 +57,12 @@ pub struct Query {
 
 impl Query {
     pub fn new(attributes: Option<Vec<filter::Attribute>>, directories: Option<Vec<String>>, filters: Option<filter_tree::FilterTree>, command: Option<String>) -> Query{
-        let attr = attributes.unwrap_or(vec![filter::Attribute::Name]);
+        let mut attr = attributes.unwrap_or(vec![filter::Attribute::Name]);
         let dirs = directories.unwrap_or(vec![String::from(".")]);
         let filters = filters.unwrap_or(filter_tree::FilterTree::new(None, None, None));
+        if attr.len() == 0 {
+            attr.push(filter::Attribute::Name);
+        }
         Query{attributes: attr, directories: dirs, filters: filters, command: command, machine_mode: false}
     }
 

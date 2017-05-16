@@ -66,7 +66,10 @@ fn main() {
             check_semicolon(&mut query_string);
             Query::parse(&query_string)
         },
-        None => panic!("frust without a query is not yet supported!"),
+        None => {
+            let query_string = String::from("name;");
+            Query::parse(&query_string)
+        }
     };
 
     let max_depth = matches.value_of("depth").unwrap().parse::<usize>().expect("Given depth cannot be parsed to an integer!");
