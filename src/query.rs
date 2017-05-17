@@ -15,6 +15,10 @@ use std::process::Command;
 use liquid;
 use liquid::{Renderable, Context, Value};
 use std::os::linux::fs::MetadataExt;
+use colored::*;
+use std::env;
+use std::collections::HashMap;
+use regex::Regex;
 
 fn format_mimetype(t: mime_guess::Mime, machine_readable: bool) -> String {
     format!("{}", t)
@@ -48,6 +52,42 @@ fn format_systime(t: time::SystemTime, machine_readable: bool) -> String {
        format!("{}", Local.timestamp(duration.as_secs() as i64, 0).format("%F %T"))
     }
 }
+
+fn build_color_map() -> HashMap<String, String> {
+    let mut color_map = HashMap::new();
+    let colors = match env::vars_os().find(|k, v| k == "LS_COLORS") {
+        Some((key, value)) => value.split(":").collect(),
+        None => panic!("LS_COLORS not set!"),
+    }
+
+    let color_re = Regex::new("\*\.([a-z]+)=([0-9]+);([0-9]+)")
+
+    for color in colors {
+        let caps = color_re.captures(color).unwrap();
+        color_map.insert(&caps[1], &caps[3]);
+    }
+
+    color_map
+}
+
+
+fn dircolor(dir_entry: &DirEntry, color_map: HashMap) -> String {
+
+}
+
+fn format_name(dir_entry: &DirEntry, colored: bool, color_map: HashMap, machine_readable: bool) -> String{
+    if ! colored || machine_readable {
+        String::from(dir_entry.path().to_str().expect("UTF-8 Error"))
+    } else {
+        let ft = dir_entry.metadata().expect(format!("Could not get metadata of {:?}", dir_entry)).file_type();
+        if ft.is_file() {
+            dircolor(dir_entry, color_map)
+        } else {
+            name
+        }
+    }
+}
+
 
 pub struct Query {
     attributes: Vec<filter::Attribute>,
@@ -84,7 +124,7 @@ impl Query {
         }
     }
 
-    fn print_attributes(&self, entry: &DirEntry) {
+    fn print_attributes(&self, entry: &DirEntry, color_map: HashMap) {
         let mut print_string = String::from("");
         for attribute in &self.attributes {
             let attr_str = match *attribute {
@@ -158,6 +198,7 @@ impl Query {
     }
 
     fn raw_walk(&self, dir: &String, max_depth: usize) {
+        let color_map = build_color_map();
         let dir_iter = WalkDir::new(dir).max_depth(max_depth).into_iter();
 
         'files: for entry in dir_iter {
@@ -171,12 +212,13 @@ impl Query {
             if self.filters.test(&entry) != true {
                     continue 'files;
             }
-            self.print_attributes(&entry);
+            self.print_attributes(&entry, &color_map);
             self.run_command(&entry);
         }
     }
 
     fn dev_walk(&self, dir: &String, max_depth: usize){
+        let color_map = build_color_map();
         let dev_id = match WalkDir::new(dir).into_iter().next() {
             Some(e) => {
                 let dir_entry = e.expect("Failed to open directory entry.",);
@@ -199,7 +241,7 @@ impl Query {
             if self.filters.test(&entry) != true {
                     continue 'files;
             }
-            self.print_attributes(&entry);
+            self.print_attributes(&entry, &color_map);
             self.run_command(&entry);
         }
     }

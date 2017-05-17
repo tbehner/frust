@@ -21,6 +21,7 @@ pretty-bytes = "0.2.1"
 chrono = "0.3.0"
 mime_guess = "1.8.1"
 liquid = "0.9"
+colored = "^1.5"
 
 [dependencies.nom]
 version = "^2.2"
