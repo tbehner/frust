@@ -24,6 +24,13 @@ fn is_integer(inp: String) -> Result<(), String> {
     }
 }
 
+fn check_semicolon(inp: &mut String){
+    let semicolon_check = Regex::new(";\\s*$").unwrap();
+    if !semicolon_check.is_match(inp) {
+        inp.push(';');
+    }
+}
+
 fn main() {
     let matches = App::new("frust")
         .version("0.0.1")
@@ -53,18 +60,19 @@ fn main() {
         )
         .get_matches();
 
-    let mut q = if matches.is_present("QUERY") {
-        let mut query_string = String::from(matches.value_of("QUERY").unwrap());
-        let semicolon_check = Regex::new(";\\s*$").unwrap();
-        if !semicolon_check.is_match(&query_string) {
-            query_string.push(';');
+    let mut q = match matches.value_of("QUERY") {
+        Some(query_inp) => {
+            let mut query_string = String::from(query_inp);
+            check_semicolon(&mut query_string);
+            Query::parse(&query_string)
+        },
+        None => {
+            let query_string = String::from("name;");
+            Query::parse(&query_string)
         }
-        Query::parse(&query_string)
-    } else {
-        panic!("frust without a query is not yet supported!");
     };
 
-    let max_depth = matches.value_of("depth").unwrap().parse::<usize>().unwrap();
+    let max_depth = matches.value_of("depth").unwrap().parse::<usize>().expect("Given depth cannot be parsed to an integer!");
     let machine_mode = matches.is_present("machine-readable");
     q.execute(max_depth, machine_mode);
 }
