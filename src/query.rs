@@ -2,6 +2,7 @@ use filter;
 use filter_tree;
 use walkdir::WalkDir;
 use walkdir::DirEntry;
+use walkdir::WalkDirIterator;
 use parser;
 use nom::IResult;
 use nom::Needed;
@@ -13,6 +14,7 @@ use mime_guess;
 use std::process::Command;
 use liquid;
 use liquid::{Renderable, Context, Value};
+use std::os::linux::fs::MetadataExt;
 
 fn format_mimetype(t: mime_guess::Mime, machine_readable: bool) -> String {
     format!("{}", t)
@@ -155,27 +157,64 @@ impl Query {
         }
     }
 
-    pub fn execute(&mut self, max_depth: usize, machine_mode: bool) {
+    fn raw_walk(&self, dir: &String, max_depth: usize) {
+        let dir_iter = WalkDir::new(dir).max_depth(max_depth).into_iter();
+
+        'files: for entry in dir_iter {
+            let entry = match entry{
+                Ok(e)  => e,
+                Err(e) => {
+                    println!("Error: {}", e);
+                    continue 'files;
+                }
+            };
+            if self.filters.test(&entry) != true {
+                    continue 'files;
+            }
+            self.print_attributes(&entry);
+            self.run_command(&entry);
+        }
+    }
+
+    fn dev_walk(&self, dir: &String, max_depth: usize){
+        let dev_id = match WalkDir::new(dir).into_iter().next() {
+            Some(e) => {
+                let dir_entry = e.expect("Failed to open directory entry.",);
+                dir_entry.metadata().map(|m| m.st_dev()).expect(&format!("Could not get device id from {:?}.", dir_entry)) 
+            }
+            None => panic!("{} not found!", dir)
+        };
+        let dir_iter = WalkDir::new(dir)
+                            .max_depth(max_depth)
+                            .into_iter()
+                            .filter_entry(|e| e.metadata().map(|m| m.st_dev() == dev_id).unwrap_or(false));
+        'files: for entry in dir_iter {
+            let entry = match entry{
+                Ok(e)  => e,
+                Err(e) => {
+                    println!("Error: {}", e);
+                    continue 'files;
+                }
+            };
+            if self.filters.test(&entry) != true {
+                    continue 'files;
+            }
+            self.print_attributes(&entry);
+            self.run_command(&entry);
+        }
+    }
+
+
+    pub fn execute(&mut self, max_depth: usize, machine_mode: bool, same_device: bool) {
         if machine_mode {
             self.machine_mode = true
         }
 
         for dir in &self.directories {
-            let dir_iter = WalkDir::new(dir).max_depth(max_depth);
-
-            'files: for entry in dir_iter {
-                let entry = match entry{
-                    Ok(e)  => e,
-                    Err(e) => {
-                        println!("Error: {}", e);
-                        continue 'files;
-                    }
-                };
-                if self.filters.test(&entry) != true {
-                        continue 'files;
-                }
-                self.print_attributes(&entry);
-                self.run_command(&entry);
+            if same_device {
+                self.dev_walk(dir, max_depth);
+            } else {
+                self.raw_walk(dir, max_depth);
             }
         }
     }

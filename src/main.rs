@@ -58,6 +58,13 @@ fn main() {
              .required(false)
              .takes_value(false)
         )
+        .arg(Arg::with_name("same-device")
+             .short("s")
+             .long("same-device")
+             .help("Don't descend directories on other filesystems.")
+             .required(false)
+             .takes_value(false)
+         )
         .get_matches();
 
     let mut q = match matches.value_of("QUERY") {
@@ -74,5 +81,6 @@ fn main() {
 
     let max_depth = matches.value_of("depth").unwrap().parse::<usize>().expect("Given depth cannot be parsed to an integer!");
     let machine_mode = matches.is_present("machine-readable");
-    q.execute(max_depth, machine_mode);
+    let same_device = matches.is_present("same-device");
+    q.execute(max_depth, machine_mode, same_device);
 }
