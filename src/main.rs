@@ -22,6 +22,7 @@ use clap::{App, Arg};
 use frustlib::query::Query;
 use std::fs::File;
 use std::io::prelude::*;
+use std::env;
 
 
 #[derive(Debug, Deserialize)]
@@ -89,9 +90,12 @@ fn main() {
 		.get_matches();
 
 
-    let mut config_file = File::open("/home/timm/.config/frust/config.toml").unwrap();
     let mut config_contents = String::new();
-    config_file.read_to_string(&mut config_contents).unwrap();
+    let home: Option<String> = env::home_dir().map(|hd| String::from(hd.to_str().expect("Is your home not UTF8 encoded?!")));
+    if home.is_some() {
+        let mut config_file = File::open(format!("{}/.config/frust/config.toml", home.unwrap())).unwrap();
+        config_file.read_to_string(&mut config_contents).unwrap();
+    }
 
 	let config: Config = match toml::from_str(&config_contents) {
         Ok(c) => c,
