@@ -10,12 +10,33 @@ extern crate clap;
 extern crate walkdir;
 extern crate frustlib;
 extern crate regex;
+extern crate toml;
+extern crate serde;
+#[macro_use]
+extern crate serde_derive;
 // #[macro_use] extern crate log;
 // extern crate env_logger;
 
 use regex::Regex;
 use clap::{App, Arg};
 use frustlib::query::Query;
+use std::fs::File;
+use std::io::prelude::*;
+
+
+#[derive(Debug, Deserialize)]
+struct Config {
+    color : Option<ColorConfig>,
+}
+
+#[derive(Debug, Deserialize)]
+struct ColorConfig {
+    file: Option<String>,
+    dir: Option<String>,
+    symlink: Option<String>,
+}
+
+
 
 fn is_integer(inp: String) -> Result<(), String> {
     match inp.parse::<u32>() {
@@ -58,14 +79,25 @@ fn main() {
              .required(false)
              .takes_value(false)
         )
-        .arg(Arg::with_name("same-device")
-             .short("s")
-             .long("same-device")
-             .help("Don't descend directories on other filesystems.")
-             .required(false)
-             .takes_value(false)
-         )
-        .get_matches();
+		.arg(Arg::with_name("same-device")
+			 .short("s")
+			 .long("same-device")
+			 .help("Don't descend directories on other filesystems.")
+			 .required(false)
+			 .takes_value(false)
+			)
+		.get_matches();
+
+
+    let mut config_file = File::open("/home/timm/.config/frust/config.toml").unwrap();
+    let mut config_contents = String::new();
+    config_file.read_to_string(&mut config_contents).unwrap();
+
+	let config: Config = match toml::from_str(&config_contents) {
+        Ok(c) => c,
+        Err(e) => panic!("Could not parse config {}", e),
+    };
+    println!("{:#?}", config);
 
     let mut q = match matches.value_of("QUERY") {
         Some(query_inp) => {

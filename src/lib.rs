@@ -14,6 +14,9 @@ extern crate pretty_bytes;
 extern crate chrono;
 extern crate mime_guess;
 extern crate liquid;
+extern crate colored;
+extern crate termion;
+extern crate libc;
 
 pub mod query;
 pub mod filter;
