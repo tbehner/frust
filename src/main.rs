@@ -12,31 +12,13 @@ extern crate frustlib;
 extern crate regex;
 extern crate toml;
 extern crate serde;
-#[macro_use]
-extern crate serde_derive;
-// #[macro_use] extern crate log;
-// extern crate env_logger;
 
 use regex::Regex;
 use clap::{App, Arg};
 use frustlib::query::Query;
 use std::fs::File;
 use std::io::prelude::*;
-
-
-#[derive(Debug, Deserialize)]
-struct Config {
-    color : Option<ColorConfig>,
-}
-
-#[derive(Debug, Deserialize)]
-struct ColorConfig {
-    file: Option<String>,
-    dir: Option<String>,
-    symlink: Option<String>,
-}
-
-
+use frustlib::Config;
 
 fn is_integer(inp: String) -> Result<(), String> {
     match inp.parse::<u32>() {
@@ -54,8 +36,8 @@ fn check_semicolon(inp: &mut String){
 
 fn main() {
     let matches = App::new("frust")
-        .version("0.0.1")
-        .about("Does great stuff, in the future, hopefully...")
+        .version("0.0.2")
+        .about("find alternative with SQL-like syntax.")
         .author("Timm Behner, Martin Clauß")
         .arg(Arg::with_name("QUERY")
              .help("find files according to the query the directory tree")
@@ -89,15 +71,20 @@ fn main() {
 		.get_matches();
 
 
-    let mut config_file = File::open("/home/timm/.config/frust/config.toml").unwrap();
     let mut config_contents = String::new();
-    config_file.read_to_string(&mut config_contents).unwrap();
+    match File::open("/home/timm.behner/.config/frust/config.toml") {
+        Ok(mut config_file) => {
+            config_file.read_to_string(&mut config_contents).unwrap();
+        },
+        Err(_) => {
+            config_contents = String::from("[color]");
+        },
+    }
 
 	let config: Config = match toml::from_str(&config_contents) {
         Ok(c) => c,
         Err(e) => panic!("Could not parse config {}", e),
     };
-    println!("{:#?}", config);
 
     let mut q = match matches.value_of("QUERY") {
         Some(query_inp) => {
@@ -114,5 +101,5 @@ fn main() {
     let max_depth = matches.value_of("depth").unwrap().parse::<usize>().expect("Given depth cannot be parsed to an integer!");
     let machine_mode = matches.is_present("machine-readable");
     let same_device = matches.is_present("same-device");
-    q.execute(max_depth, machine_mode, same_device);
+    q.execute(max_depth, machine_mode, same_device, config.color);
 }

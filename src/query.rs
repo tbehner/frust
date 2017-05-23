@@ -1,23 +1,57 @@
 use filter;
 use filter_tree;
+use ColorConfig;
 use walkdir::WalkDir;
 use walkdir::DirEntry;
 use walkdir::WalkDirIterator;
 use parser;
 use nom::IResult;
 use nom::Needed;
-use std::fs;
 use pretty_bytes::converter::convert as pretty_bytes_convert;
-use std::time;
 use chrono::{Local, TimeZone};
 use mime_guess;
-use std::process::Command;
 use liquid;
 use liquid::{Renderable, Context, Value};
-use std::os::linux::fs::MetadataExt;
-use std::path::Path;
 use termion::{is_tty, color};
 use libc;
+use std::fs;
+use std::fmt;
+use std::time;
+use std::path::Path;
+use std::ffi::OsStr;
+use std::os::unix::fs::FileTypeExt;
+use std::os::linux::fs::MetadataExt;
+use std::process::Command;
+
+struct RgbColor {
+    red: u8,
+    green: u8,
+    blue: u8,
+}
+
+impl RgbColor {
+    fn new(r: u8, g: u8, b: u8) -> RgbColor {
+        RgbColor{red: r, green: g, blue: b}
+    }
+
+    fn from_str(color_string: &str) -> RgbColor {
+        let red = u8::from_str_radix(&color_string[0..2], 16).expect(&format!("Could not parse red value in color {}", color_string));
+        let green = u8::from_str_radix(&color_string[2..4], 16).expect(&format!("Could not parse green value in color {}", color_string));
+        let blue = u8::from_str_radix(&color_string[4..6], 16).expect(&format!("Could not parse blue value in color {}", color_string));
+        RgbColor{red: red, green: green, blue: blue}
+    }
+
+    fn as_color(&self) -> color::Rgb {
+        color::Rgb(self.red, self.green, self.blue)
+    }
+}
+
+impl fmt::Display for RgbColor {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "rgb({}, {}, {})", self.red, self.green, self.blue)
+    }
+}
+
 
 fn format_mimetype(t: mime_guess::Mime, machine_readable: bool) -> String {
     format!("{}", t)
@@ -34,7 +68,13 @@ fn format_filetype(ft: fs::FileType, machine_readable: bool) -> String {
     } else if ft.is_dir() {
         String::from("dir")
     } else if ft.is_symlink() {
-        String::from("slink")
+        String::from("symlink")
+    } else if ft.is_block_device() {
+        String::from("block_device")
+    } else if ft.is_fifo() {
+        String::from("pipe")
+    } else if ft.is_socket() {
+        String::from("socket")
     } else {
         String::from("unkown")
     }
@@ -57,46 +97,83 @@ fn format_systime(t: time::SystemTime, machine_readable: bool) -> String {
     }
 }
 
-fn format_name(dir_entry: &DirEntry, color: bool) -> String {
+fn format_path<P: color::Color, C: color::Color>(path: &Path, parent_color: color::Fg<P>, filename_color: color::Fg<C>) -> String {
+    match path.parent() {
+        Some(parent) => match path.file_name() {
+            Some(filename) => format!("{reset}{path_color}{path}/{filename_color}{filename}{reset}", 
+                                          reset=color::Fg(color::Reset),
+                                          path_color=parent_color,
+                                          path=parent.to_str().unwrap(), 
+                                          filename_color=filename_color,
+                                          filename=filename.to_str().unwrap()),
+            None => format!("{}", parent.to_str().unwrap()),
+        },
+        None => panic!("This should not happen!")
+    }
+}
+
+
+fn format_name(dir_entry: &DirEntry, color_config: &Option<ColorConfig>, color_mode: bool) -> String {
     let path = dir_entry.path();
     let default_format = format!("{}", path.to_str().unwrap());
-    if !color {
+    if !color_mode {
         return default_format;
     }
 
-    let filetype = dir_entry.file_type();
+    // Default configuration taken from LS_COLORS aka the output of /usr/bin/dircolors
+    let file_color = color::Fg(color::Reset);
+    let dir_color = color::Fg(color::Blue);
+    let symlink_color = color::Fg(color::Cyan);
+    let block_device_color = color::Fg(color::LightRed);
+    let fifo_color = color::Fg(color::LightRed);
+    let socket_color = color::Fg(color::Magenta);
 
+    let filetype = dir_entry.file_type();
     if filetype.is_file(){
-        match path.parent() {
-            Some(parent) => match path.file_name() {
-                Some(filename) => format!("{reset}{path_color}{path}/{filename_color}{filename}{reset}", 
-                                          reset=color::Fg(color::Reset),
-                                          path_color=color::Fg(color::Rgb(0, 51, 204)),
-                                          path=parent.to_str().unwrap(), 
-                                          filename_color=color::Fg(color::Reset),
-                                          filename=filename.to_str().unwrap()),
-                None => format!("{}", parent.to_str().unwrap()),
+        match *color_config {
+            Some(ref config) => match config.file {
+                Some(ref fc) => format_path(path, dir_color, color::Fg(RgbColor::from_str(fc).as_color())),
+                None         => format_path(path, dir_color, file_color),
             },
-            None => panic!("This should not happen!")
+            None => format_path(path, dir_color, file_color),
         }
+    } else if filetype.is_symlink() {
+        match *color_config {
+            Some(ref config) => match config.symlink {
+                Some(ref sc) => format_path(path, dir_color, color::Fg(RgbColor::from_str(sc).as_color())),
+                None         => format_path(path, dir_color, symlink_color),
+            },
+            None => format_path(path, dir_color, symlink_color),
+        }
+    } else if filetype.is_block_device() {
+        match *color_config {
+            Some(ref config) => match config.device {
+                Some(ref bc) => format_path(path, dir_color, color::Fg(RgbColor::from_str(bc).as_color())),
+                None         => format_path(path, dir_color, block_device_color),
+            },
+            None => format_path(path, dir_color, block_device_color),
+        }
+    } else if filetype.is_fifo() {
+         match *color_config {
+            Some(ref config) => match config.fifo {
+                Some(ref fc) => format_path(path, dir_color, color::Fg(RgbColor::from_str(fc).as_color())),
+                None         => format_path(path, dir_color, fifo_color),
+            },
+            None => format_path(path, dir_color, fifo_color),
+        }
+    } else if filetype.is_socket() {
+        match *color_config {
+            Some(ref config) => match config.socket {
+                Some(ref sc) => format_path(path, dir_color, color::Fg(RgbColor::from_str(sc).as_color())),
+                None         => format_path(path, dir_color, socket_color),
+            },
+            None => format_path(path, dir_color, socket_color),
+        }    
     } else if filetype.is_dir() {
         format!("{reset}{dircolor}{dirname}{reset}", 
                         reset=color::Fg(color::Reset),
-                        dircolor=color::Fg(color::Rgb(0, 51, 204)),
+                        dircolor=dir_color,
                         dirname=path.to_str().unwrap())
-    } else if filetype.is_symlink() {
-        match path.parent() {
-            Some(parent) => match path.file_name() {
-                Some(filename) => format!("{reset}{path_color}{path}/{symlink_color}{symlink}{reset}", 
-                                          reset=color::Fg(color::Reset),
-                                          path_color=color::Fg(color::Rgb(0, 51, 204)),
-                                          path=parent.to_str().unwrap(), 
-                                          symlink_color=color::Fg(color::Rgb(0, 255, 255)),
-                                          symlink=filename.to_str().unwrap()),
-                None => format!("{}", parent.to_str().unwrap()),
-            },
-            None => panic!("This should not happen!")
-        }
     } else {
         format!("{}", path.to_str().unwrap())
     }
@@ -137,11 +214,11 @@ impl Query {
         }
     }
 
-    fn print_attributes(&self, entry: &DirEntry, color: bool) {
+    fn print_attributes(&self, entry: &DirEntry, color_config: &Option<ColorConfig>, color_mode: bool) {
         let mut print_string = String::from("");
         for attribute in &self.attributes {
             let attr_str = match *attribute {
-                filter::Attribute::Name	    => format_name(entry, color),
+                filter::Attribute::Name	    => format_name(entry, color_config, color_mode),
                 filter::Attribute::Basename	=> format!("{}", entry.file_name().to_str().unwrap()),
                 filter::Attribute::Size	    => format_filesize(entry.metadata().unwrap().len(), self.machine_mode),
                 filter::Attribute::Mtime	=> format_systime(entry.metadata().unwrap().modified().unwrap(), self.machine_mode),
@@ -210,7 +287,7 @@ impl Query {
         }
     }
 
-    fn raw_walk(&self, dir: &String, max_depth: usize, color: bool) {
+    fn raw_walk(&self, dir: &String, max_depth: usize, color_config: &Option<ColorConfig>, color_mode: bool) {
         let dir_iter = WalkDir::new(dir).max_depth(max_depth).into_iter();
 
         'files: for entry in dir_iter {
@@ -224,12 +301,12 @@ impl Query {
             if self.filters.test(&entry) != true {
                     continue 'files;
             }
-            self.print_attributes(&entry, color);
+            self.print_attributes(&entry, color_config, color_mode);
             self.run_command(&entry);
         }
     }
 
-    fn dev_walk(&self, dir: &String, max_depth: usize, color: bool){
+    fn dev_walk(&self, dir: &String, max_depth: usize, color_config: &Option<ColorConfig>, color_mode: bool){
         let dev_id = match WalkDir::new(dir).into_iter().next() {
             Some(e) => {
                 let dir_entry = e.expect("Failed to open directory entry.",);
@@ -252,23 +329,24 @@ impl Query {
             if self.filters.test(&entry) != true {
                     continue 'files;
             }
-            self.print_attributes(&entry, color);
+            self.print_attributes(&entry, color_config, color_mode);
             self.run_command(&entry);
         }
     }
 
 
-    pub fn execute(&mut self, max_depth: usize, machine_mode: bool, same_device: bool) {
-        let color = stdout_is_tty();
+    pub fn execute(&mut self, max_depth: usize, machine_mode: bool, same_device: bool, color_config: Option<ColorConfig>) {
+        let color_mode = stdout_is_tty();
+
         if machine_mode {
             self.machine_mode = true
         }
 
         for dir in &self.directories {
             if same_device {
-                self.dev_walk(dir, max_depth, color);
+                self.dev_walk(dir, max_depth, &color_config, color_mode);
             } else {
-                self.raw_walk(dir, max_depth, color);
+                self.raw_walk(dir, max_depth, &color_config, color_mode);
             }
         }
     }

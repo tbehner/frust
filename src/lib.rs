@@ -17,6 +17,9 @@ extern crate liquid;
 extern crate colored;
 extern crate termion;
 extern crate libc;
+extern crate serde;
+#[macro_use]
+extern crate serde_derive;
 
 pub mod query;
 pub mod filter;
@@ -27,3 +30,20 @@ pub mod name_filter;
 pub mod size_filter;
 pub mod time_filter;
 pub mod filetype_filter;
+
+#[derive(Debug, Deserialize)]
+pub struct Config {
+    pub color : Option<ColorConfig>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ColorConfig {
+    dir:  Option<String>,
+    file: Option<String>,
+    fifo: Option<String>,
+    socket: Option<String>,
+    device: Option<String>,
+    symlink: Option<String>,
+}
+
+
