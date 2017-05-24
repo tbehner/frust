@@ -2,6 +2,7 @@ use filter;
 use filter_tree;
 use ColorConfig;
 use formatter;
+use walkdir;
 use walkdir::WalkDir;
 use walkdir::DirEntry;
 use walkdir::WalkDirIterator;
@@ -35,8 +36,15 @@ pub struct Query {
     machine_mode: bool,
 }
 
+fn is_hidden(entry: &DirEntry) -> bool {
+    entry.file_name()
+         .to_str()
+         .map(|s| s.starts_with("."))
+         .unwrap_or(false)
+}
+
 impl Query {
-    pub fn new(attributes: Option<Vec<filter::Attribute>>, directories: Option<Vec<String>>, filters: Option<filter_tree::FilterTree>, command: Option<String>) -> Query{
+    pub fn new(attributes: Option<Vec<filter::Attribute>>, directories: Option<Vec<String>>, filters: Option<filter_tree::FilterTree>, command: Option<String>, color_mode: bool, color_config: Option<ColorConfig>) -> Query{
         let mut attr = attributes.unwrap_or(vec![filter::Attribute::Name]);
         let dirs = directories.unwrap_or(vec![String::from(".")]);
         let filters = filters.unwrap_or(filter_tree::FilterTree::new(None, None, None));
@@ -154,7 +162,21 @@ impl Query {
         }
     }
 
-    fn dev_walk(&self, dir: &String, max_depth: usize, color_config: &Option<ColorConfig>, color_mode: bool){
+    fn process_entry(&self, entry: Result<DirEntry, walkdir::Error>, color_config: &Option<ColorConfig>, color_mode: bool){
+        let entry = match entry{
+            Ok(e)  => e,
+            Err(e) => {
+                println!("Error: {}", e);
+                return;
+            }
+        };
+        if self.filters.test(&entry) == true {
+            self.print_attributes(&entry, color_config, color_mode);
+            self.run_command(&entry);
+        }
+    }
+
+    fn dev_walk(&self, dir: &String, max_depth: usize, color_config: &Option<ColorConfig>, color_mode: bool, ignore_hidden: bool){
         let dev_id = match WalkDir::new(dir).into_iter().next() {
             Some(e) => {
                 let dir_entry = e.expect("Failed to open directory entry.",);
@@ -162,23 +184,11 @@ impl Query {
             }
             None => panic!("{} not found!", dir)
         };
-        let dir_iter = WalkDir::new(dir)
-                            .max_depth(max_depth)
-                            .into_iter()
-                            .filter_entry(|e| e.metadata().map(|m| m.st_dev() == dev_id).unwrap_or(false));
-        'files: for entry in dir_iter {
-            let entry = match entry{
-                Ok(e)  => e,
-                Err(e) => {
-                    println!("Error: {}", e);
-                    continue 'files;
-                }
-            };
-            if self.filters.test(&entry) != true {
-                    continue 'files;
-            }
-            self.print_attributes(&entry, color_config, color_mode);
-            self.run_command(&entry);
+        let dir_iter = WalkDir::new(dir).max_depth(max_depth).into_iter();
+
+        let filtered_iter = dir_iter.filter_entry(|e| e.metadata().map(|m| m.st_dev() == dev_id).unwrap_or(false));
+        for entry in filtered_iter {
+            self.process_entry(entry, color_config, color_mode);
         }
     }
 
@@ -190,9 +200,11 @@ impl Query {
             self.machine_mode = true
         }
 
+        let ignore_hidden = false;
+
         for dir in &self.directories {
             if same_device {
-                self.dev_walk(dir, max_depth, &color_config, color_mode);
+                self.dev_walk(dir, max_depth, &color_config, color_mode, same_device, ignore_hidden);
             } else {
                 self.raw_walk(dir, max_depth, &color_config, color_mode);
             }
