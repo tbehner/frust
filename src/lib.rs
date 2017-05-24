@@ -24,6 +24,7 @@ extern crate serde_derive;
 pub mod query;
 pub mod filter;
 pub mod parser;
+pub mod formatter;
 pub mod filter_tree;
 pub mod regex_filter;
 pub mod name_filter;
