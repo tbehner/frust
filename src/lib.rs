@@ -38,6 +38,7 @@ pub struct Config {
 
 #[derive(Debug, Deserialize)]
 pub struct ColorConfig {
+    prefix: Option<String>,
     dir:  Option<String>,
     file: Option<String>,
     fifo: Option<String>,

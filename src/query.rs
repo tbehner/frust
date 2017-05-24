@@ -138,37 +138,37 @@ fn format_name(dir_entry: &DirEntry, color_config: &Option<ColorConfig>, color_m
 
     let filetype = dir_entry.file_type();
     match *color_config {
-        Some(ref config) => match config.dir {
-            Some(ref dc) => { 
+        Some(ref config) => match config.prefix {
+            Some(ref pre) => { 
                 if filetype.is_file(){
                     match config.file {
-                        Some(ref fc) => format_path(path, color::Fg(RgbColor::from_str(dc).as_color()), color::Fg(RgbColor::from_str(fc).as_color())),
-                        None         => format_path(path, color::Fg(RgbColor::from_str(dc).as_color()), file_color),
+                        Some(ref fc) => format_path(path, color::Fg(RgbColor::from_str(pre).as_color()), color::Fg(RgbColor::from_str(fc).as_color())),
+                        None         => format_path(path, color::Fg(RgbColor::from_str(pre).as_color()), file_color),
                     }
                 } else if filetype.is_symlink() {
                     match config.symlink {
-                        Some(ref sc) => format_path(path, color::Fg(RgbColor::from_str(dc).as_color()), color::Fg(RgbColor::from_str(sc).as_color())),
-                        None         => format_path(path, color::Fg(RgbColor::from_str(dc).as_color()), symlink_color),
+                        Some(ref sc) => format_path(path, color::Fg(RgbColor::from_str(pre).as_color()), color::Fg(RgbColor::from_str(sc).as_color())),
+                        None         => format_path(path, color::Fg(RgbColor::from_str(pre).as_color()), symlink_color),
                     }
                 } else if filetype.is_block_device() {
                     match config.device {
-                        Some(ref bc) => format_path(path, color::Fg(RgbColor::from_str(dc).as_color()), color::Fg(RgbColor::from_str(bc).as_color())),
-                        None         => format_path(path, color::Fg(RgbColor::from_str(dc).as_color()), block_device_color),
+                        Some(ref bc) => format_path(path, color::Fg(RgbColor::from_str(pre).as_color()), color::Fg(RgbColor::from_str(bc).as_color())),
+                        None         => format_path(path, color::Fg(RgbColor::from_str(pre).as_color()), block_device_color),
                     }
                 } else if filetype.is_fifo() {
                     match config.fifo {
-                            Some(ref fc) => format_path(path, color::Fg(RgbColor::from_str(dc).as_color()), color::Fg(RgbColor::from_str(fc).as_color())),
-                            None         => format_path(path, color::Fg(RgbColor::from_str(dc).as_color()), fifo_color),
+                            Some(ref fc) => format_path(path, color::Fg(RgbColor::from_str(pre).as_color()), color::Fg(RgbColor::from_str(fc).as_color())),
+                            None         => format_path(path, color::Fg(RgbColor::from_str(pre).as_color()), fifo_color),
                     }
                 } else if filetype.is_socket() {
                     match config.socket {
-                        Some(ref sc) => format_path(path, color::Fg(RgbColor::from_str(dc).as_color()), color::Fg(RgbColor::from_str(sc).as_color())),
-                        None         => format_path(path, color::Fg(RgbColor::from_str(dc).as_color()), socket_color),
+                        Some(ref sc) => format_path(path, color::Fg(RgbColor::from_str(pre).as_color()), color::Fg(RgbColor::from_str(sc).as_color())),
+                        None         => format_path(path, color::Fg(RgbColor::from_str(pre).as_color()), socket_color),
                     }    
                 } else if filetype.is_dir() {
                     match config.dir {
                         Some(ref dc) => format_dir(path, color::Fg(RgbColor::from_str(dc).as_color())),
-                        None => format_dir(path, color::Fg(RgbColor::from_str(dc).as_color())),
+                        None => format_dir(path, dir_color),
                     }
                 } else {
                     format!("{}", path.to_str().unwrap())
