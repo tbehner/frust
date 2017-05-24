@@ -136,7 +136,7 @@ impl Query {
             };
         context.set_val("atime", Value::Str(atime));
 
-        context.set_val("filetype", Value::Str(format_filetype(dir_entry.metadata().unwrap().file_type(), self.machine_mode)));
+        context.set_val("type", Value::Str(format_filetype(dir_entry.metadata().unwrap().file_type(), self.machine_mode)));
         context.set_val("mimetype", Value::Str(format_mimetype(mime_guess::guess_mime_type(dir_entry.path().to_str().unwrap()), self.machine_mode)));
         context.set_val("inode", Value::Str(format!("{}", dir_entry.ino())));
         return context;

@@ -42,7 +42,7 @@ named!(attribute<filter::Attribute>,
                     | tag!("mtime")    => { |_| filter::Attribute::Mtime }
                     | tag!("ctime")    => { |_| filter::Attribute::Ctime }
                     | tag!("atime")    => { |_| filter::Attribute::Atime }
-                    | tag!("filetype") => { |_| filter::Attribute::Filetype }
+                    | tag!("type") => { |_| filter::Attribute::Filetype }
                     | tag!("mimetype") => { |_| filter::Attribute::Mimetype }
                     | tag!("inode")    => { |_| filter::Attribute::Inode }
                     | tag!("basename") => { |_| filter::Attribute::Basename }
