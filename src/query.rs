@@ -129,53 +129,62 @@ fn format_name(dir_entry: &DirEntry, color_config: &Option<ColorConfig>, color_m
     let socket_color = color::Fg(color::Magenta);
 
     let filetype = dir_entry.file_type();
-    if filetype.is_file(){
-        match *color_config {
-            Some(ref config) => match config.file {
-                Some(ref fc) => format_path(path, dir_color, color::Fg(RgbColor::from_str(fc).as_color())),
-                None         => format_path(path, dir_color, file_color),
-            },
-            None => format_path(path, dir_color, file_color),
-        }
-    } else if filetype.is_symlink() {
-        match *color_config {
-            Some(ref config) => match config.symlink {
-                Some(ref sc) => format_path(path, dir_color, color::Fg(RgbColor::from_str(sc).as_color())),
-                None         => format_path(path, dir_color, symlink_color),
-            },
-            None => format_path(path, dir_color, symlink_color),
-        }
-    } else if filetype.is_block_device() {
-        match *color_config {
-            Some(ref config) => match config.device {
-                Some(ref bc) => format_path(path, dir_color, color::Fg(RgbColor::from_str(bc).as_color())),
-                None         => format_path(path, dir_color, block_device_color),
-            },
-            None => format_path(path, dir_color, block_device_color),
-        }
-    } else if filetype.is_fifo() {
-         match *color_config {
-            Some(ref config) => match config.fifo {
-                Some(ref fc) => format_path(path, dir_color, color::Fg(RgbColor::from_str(fc).as_color())),
-                None         => format_path(path, dir_color, fifo_color),
-            },
-            None => format_path(path, dir_color, fifo_color),
-        }
-    } else if filetype.is_socket() {
-        match *color_config {
-            Some(ref config) => match config.socket {
-                Some(ref sc) => format_path(path, dir_color, color::Fg(RgbColor::from_str(sc).as_color())),
-                None         => format_path(path, dir_color, socket_color),
-            },
-            None => format_path(path, dir_color, socket_color),
-        }    
-    } else if filetype.is_dir() {
-        format!("{reset}{dircolor}{dirname}{reset}", 
-                        reset=color::Fg(color::Reset),
-                        dircolor=dir_color,
-                        dirname=path.to_str().unwrap())
-    } else {
-        format!("{}", path.to_str().unwrap())
+    match *color_config {
+        Some(ref config) => { 
+            if filetype.is_file(){
+                match config.file {
+                    Some(ref fc) => format_path(path, dir_color, color::Fg(RgbColor::from_str(fc).as_color())),
+                    None         => format_path(path, dir_color, file_color),
+                }
+            } else if filetype.is_symlink() {
+                match config.symlink {
+                    Some(ref sc) => format_path(path, dir_color, color::Fg(RgbColor::from_str(sc).as_color())),
+                    None         => format_path(path, dir_color, symlink_color),
+                }
+            } else if filetype.is_block_device() {
+                match config.device {
+                    Some(ref bc) => format_path(path, dir_color, color::Fg(RgbColor::from_str(bc).as_color())),
+                    None         => format_path(path, dir_color, block_device_color),
+                }
+            } else if filetype.is_fifo() {
+                match config.fifo {
+                        Some(ref fc) => format_path(path, dir_color, color::Fg(RgbColor::from_str(fc).as_color())),
+                        None         => format_path(path, dir_color, fifo_color),
+                }
+            } else if filetype.is_socket() {
+                match config.socket {
+                    Some(ref sc) => format_path(path, dir_color, color::Fg(RgbColor::from_str(sc).as_color())),
+                    None         => format_path(path, dir_color, socket_color),
+                }    
+            } else if filetype.is_dir() {
+                format!("{reset}{dircolor}{dirname}{reset}", 
+                                reset=color::Fg(color::Reset),
+                                dircolor=dir_color,
+                                dirname=path.to_str().unwrap())
+            } else {
+                format!("{}", path.to_str().unwrap())
+            }
+        },
+        None => { 
+            if filetype.is_file(){
+                format_path(path, dir_color, file_color)
+            } else if filetype.is_symlink() {
+                format_path(path, dir_color, symlink_color)
+            } else if filetype.is_block_device() {
+                format_path(path, dir_color, block_device_color)
+            } else if filetype.is_fifo() {
+                format_path(path, dir_color, fifo_color)
+            } else if filetype.is_socket() {
+                format_path(path, dir_color, socket_color)
+            } else if filetype.is_dir() {
+                format!("{reset}{dircolor}{dirname}{reset}", 
+                                reset=color::Fg(color::Reset),
+                                dircolor=dir_color,
+                                dirname=path.to_str().unwrap())
+            } else {
+                format!("{}", path.to_str().unwrap())
+            }        
+        },
     }
 }
 
