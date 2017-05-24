@@ -112,6 +112,14 @@ fn format_path<P: color::Color, C: color::Color>(path: &Path, parent_color: colo
     }
 }
 
+fn format_dir<P: color::Color>(path: &Path, dir_color: color::Fg<P>) -> String {
+    format!("{reset}{dircolor}{dirname}{reset}", 
+                                reset=color::Fg(color::Reset),
+                                dircolor=dir_color,
+                                dirname=path.to_str().unwrap())
+}
+
+
 
 fn format_name(dir_entry: &DirEntry, color_config: &Option<ColorConfig>, color_mode: bool) -> String {
     let path = dir_entry.path();
@@ -157,10 +165,10 @@ fn format_name(dir_entry: &DirEntry, color_config: &Option<ColorConfig>, color_m
                     None         => format_path(path, dir_color, socket_color),
                 }    
             } else if filetype.is_dir() {
-                format!("{reset}{dircolor}{dirname}{reset}", 
-                                reset=color::Fg(color::Reset),
-                                dircolor=dir_color,
-                                dirname=path.to_str().unwrap())
+                match config.dir {
+                    Some(ref dc) => format_dir(path, color::Fg(RgbColor::from_str(dc).as_color())),
+                    None => format_dir(path, dir_color),
+                }
             } else {
                 format!("{}", path.to_str().unwrap())
             }
@@ -177,10 +185,7 @@ fn format_name(dir_entry: &DirEntry, color_config: &Option<ColorConfig>, color_m
             } else if filetype.is_socket() {
                 format_path(path, dir_color, socket_color)
             } else if filetype.is_dir() {
-                format!("{reset}{dircolor}{dirname}{reset}", 
-                                reset=color::Fg(color::Reset),
-                                dircolor=dir_color,
-                                dirname=path.to_str().unwrap())
+                format_dir(path, dir_color)
             } else {
                 format!("{}", path.to_str().unwrap())
             }        
