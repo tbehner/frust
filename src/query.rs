@@ -2,6 +2,7 @@ use filter;
 use filter_tree;
 use ColorConfig;
 use formatter;
+use walkdir;
 use walkdir::WalkDir;
 use walkdir::DirEntry;
 use walkdir::WalkDirIterator;
@@ -22,6 +23,7 @@ use std::ffi::OsStr;
 use std::os::unix::fs::FileTypeExt;
 use std::os::linux::fs::MetadataExt;
 use std::process::Command;
+use regex::Regex;
 
 fn stdout_is_tty() -> bool {
     is_tty(&fs::File::create("/dev/stdout").unwrap())
@@ -33,6 +35,13 @@ pub struct Query {
     filters: filter_tree::FilterTree,
     command: Option<String>,
     machine_mode: bool,
+}
+
+fn is_hidden(entry: &DirEntry) -> bool {
+    entry.path()
+         .to_str()
+         .map(|s| s.contains("/."))
+         .unwrap_or(false)
 }
 
 impl Query {
@@ -154,7 +163,23 @@ impl Query {
         }
     }
 
-    fn dev_walk(&self, dir: &String, max_depth: usize, color_config: &Option<ColorConfig>, color_mode: bool){
+    fn process_entry(&self, entry: Result<DirEntry, walkdir::Error>, color_config: &Option<ColorConfig>, color_mode: bool){
+        let entry = match entry{
+            Ok(e)  => e,
+            Err(e) => {
+                println!("Error: {}", e);
+                return;
+            }
+        };
+        if self.filters.test(&entry) == true {
+            self.print_attributes(&entry, color_config, color_mode);
+            self.run_command(&entry);
+        }
+    }
+
+    fn dev_walk(&self, dir: &String, max_depth: usize, color_config: &Option<ColorConfig>, color_mode: bool, same_device: bool, ignore_hidden: bool){
+        let dir_iter = WalkDir::new(dir).max_depth(max_depth).into_iter();
+
         let dev_id = match WalkDir::new(dir).into_iter().next() {
             Some(e) => {
                 let dir_entry = e.expect("Failed to open directory entry.",);
@@ -162,28 +187,31 @@ impl Query {
             }
             None => panic!("{} not found!", dir)
         };
-        let dir_iter = WalkDir::new(dir)
-                            .max_depth(max_depth)
-                            .into_iter()
-                            .filter_entry(|e| e.metadata().map(|m| m.st_dev() == dev_id).unwrap_or(false));
-        'files: for entry in dir_iter {
-            let entry = match entry{
-                Ok(e)  => e,
-                Err(e) => {
-                    println!("Error: {}", e);
-                    continue 'files;
-                }
-            };
-            if self.filters.test(&entry) != true {
-                    continue 'files;
+
+
+        if same_device && ignore_hidden {
+            let filtered_iter = dir_iter.filter_entry(|e| e.metadata().map(|m| m.st_dev() == dev_id).unwrap_or(false))
+                                        .filter_entry(|e| !is_hidden(e)); 
+            for entry in filtered_iter {
+                self.process_entry(entry, color_config, color_mode);
             }
-            self.print_attributes(&entry, color_config, color_mode);
-            self.run_command(&entry);
+        } else if same_device {
+            let filtered_iter = dir_iter.filter_entry(|e| e.metadata().map(|m| m.st_dev() == dev_id).unwrap_or(false));
+            for entry in filtered_iter {
+                self.process_entry(entry, color_config, color_mode);
+            }
+        } else if ignore_hidden {
+            let filtered_iter = dir_iter.filter_entry(|e| !is_hidden(e));
+            for entry in filtered_iter {
+                self.process_entry(entry, color_config, color_mode);
+            }
+        } else {
+            panic!("Implementation error: Use raw_walk instead!");
         }
     }
 
 
-    pub fn execute(&mut self, max_depth: usize, machine_mode: bool, same_device: bool, color_config: Option<ColorConfig>) {
+    pub fn execute(&mut self, max_depth: usize, machine_mode: bool, ignore_hidden: bool, same_device: bool, color_config: Option<ColorConfig>) {
         let color_mode = stdout_is_tty();
 
         if machine_mode {
@@ -191,8 +219,8 @@ impl Query {
         }
 
         for dir in &self.directories {
-            if same_device {
-                self.dev_walk(dir, max_depth, &color_config, color_mode);
+            if same_device || ignore_hidden {
+                self.dev_walk(dir, max_depth, &color_config, color_mode, same_device, ignore_hidden);
             } else {
                 self.raw_walk(dir, max_depth, &color_config, color_mode);
             }
