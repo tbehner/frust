@@ -15,7 +15,8 @@ named!(comp_op<filter::CompOp>, alt!(
           tag!("<")  => { |_| filter::CompOp::Lower }  
         | tag!("<=") => { |_| filter::CompOp::LowerEqual }
         | tag!("==") => { |_| filter::CompOp::Equal }
-        | tag!("not =") => { |_| filter::CompOp::Equal }
+        | tag!("not =") => { |_| filter::CompOp::Unequal }
+        | tag!("!=") => { |_| filter::CompOp::Unequal }
         | tag!(">=") => { |_| filter::CompOp::GreaterEqual }
         | tag!(">")  => { |_| filter::CompOp::Greater }
         | tag!("~")  => { |_| filter::CompOp::Like }
@@ -46,6 +47,8 @@ named!(attribute<filter::Attribute>,
                     | tag!("mimetype") => { |_| filter::Attribute::Mimetype }
                     | tag!("inode")    => { |_| filter::Attribute::Inode }
                     | tag!("basename") => { |_| filter::Attribute::Basename }
+                    | tag!("uid")      => { |_| filter::Attribute::Uid }
+                    | tag!("gid")      => { |_| filter::Attribute::Gid }
                 )
                ) >>
                (tag)
@@ -58,7 +61,7 @@ named!(directory<String>,
            (String::from_utf8_lossy(dir).into_owned())
        )
    );
-named!(num_paramter, re_bytes_find!("-?[0-9]+(\\.[0-9]*)?[a-zA-Z]"));
+named!(num_paramter, re_bytes_find!("-?[0-9]+(\\.[0-9]*)?[a-zA-Z]*"));
 named!(str_paramter, 
        do_parse!(
            tag!("'") >> 

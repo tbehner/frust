@@ -21,7 +21,7 @@ use std::time;
 use std::path::Path;
 use std::ffi::OsStr;
 use std::os::unix::fs::FileTypeExt;
-use std::os::linux::fs::MetadataExt;
+use std::os::unix::fs::MetadataExt;
 use std::process::Command;
 use regex::Regex;
 
@@ -95,6 +95,8 @@ impl Query {
                     formatter::format_mimetype(mime_guess::guess_mime_type(filepath), self.machine_mode)
                 },
                 filter::Attribute::Inode	=> format!("{}", entry.ino()),
+                filter::Attribute::Uid 	    => format!("{}", entry.metadata().unwrap().uid()),
+                filter::Attribute::Gid 	    => format!("{}", entry.metadata().unwrap().gid()),
             };
             if !print_string.is_empty() {
                 print_string.push(',');
@@ -183,20 +185,20 @@ impl Query {
         let dev_id = match WalkDir::new(dir).into_iter().next() {
             Some(e) => {
                 let dir_entry = e.expect("Failed to open directory entry.",);
-                dir_entry.metadata().map(|m| m.st_dev()).expect(&format!("Could not get device id from {:?}.", dir_entry)) 
+                dir_entry.metadata().map(|m| m.dev()).expect(&format!("Could not get device id from {:?}.", dir_entry)) 
             }
             None => panic!("{} not found!", dir)
         };
 
 
         if same_device && ignore_hidden {
-            let filtered_iter = dir_iter.filter_entry(|e| e.metadata().map(|m| m.st_dev() == dev_id).unwrap_or(false))
+            let filtered_iter = dir_iter.filter_entry(|e| e.metadata().map(|m| m.dev() == dev_id).unwrap_or(false))
                                         .filter_entry(|e| !is_hidden(e)); 
             for entry in filtered_iter {
                 self.process_entry(entry, color_config, color_mode);
             }
         } else if same_device {
-            let filtered_iter = dir_iter.filter_entry(|e| e.metadata().map(|m| m.st_dev() == dev_id).unwrap_or(false));
+            let filtered_iter = dir_iter.filter_entry(|e| e.metadata().map(|m| m.dev() == dev_id).unwrap_or(false));
             for entry in filtered_iter {
                 self.process_entry(entry, color_config, color_mode);
             }

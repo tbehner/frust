@@ -27,6 +27,8 @@ pub enum Attribute {
     Mimetype,
     Inode,
     Basename,
+    Uid,
+    Gid,
 }
 
 pub trait Filter{

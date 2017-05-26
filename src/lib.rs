@@ -31,6 +31,8 @@ pub mod name_filter;
 pub mod size_filter;
 pub mod time_filter;
 pub mod filetype_filter;
+pub mod uid_filter;
+pub mod gid_filter;
 
 #[derive(Debug, Deserialize)]
 pub struct Config {
