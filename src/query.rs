@@ -213,8 +213,12 @@ impl Query {
     }
 
 
-    pub fn execute(&mut self, max_depth: usize, machine_mode: bool, ignore_hidden: bool, same_device: bool, color_config: Option<ColorConfig>) {
-        let color_mode = stdout_is_tty();
+    pub fn execute(&mut self, max_depth: usize, machine_mode: bool, ignore_hidden: bool, same_device: bool, color: bool, color_config: Option<ColorConfig>) {
+        let color_mode = if color {
+            stdout_is_tty()
+        } else {
+            false
+        };
 
         if machine_mode {
             self.machine_mode = true

@@ -75,6 +75,13 @@ fn main() {
 			 .required(false)
 			 .takes_value(false)
 			)
+		.arg(Arg::with_name("no-color")
+			 .short("c")
+			 .long("no-color")
+			 .help("Non colored output.")
+			 .required(false)
+			 .takes_value(false)
+			)
 		.get_matches();
 
 
@@ -109,5 +116,6 @@ fn main() {
     let machine_mode = matches.is_present("machine-readable");
     let same_device = matches.is_present("same-device");
     let ignore_hidden = matches.is_present("ignore-hidden");
-    q.execute(max_depth, machine_mode, ignore_hidden, same_device, config.color);
+    let color = !matches.is_present("no-color");
+    q.execute(max_depth, machine_mode, ignore_hidden, same_device, color, config.color);
 }
