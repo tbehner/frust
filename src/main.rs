@@ -68,6 +68,13 @@ fn main() {
 			 .required(false)
 			 .takes_value(false)
 			)
+		.arg(Arg::with_name("ignore-hidden")
+			 .short("i")
+			 .long("ignore-hidden")
+			 .help("Ignore hidden files and directories.")
+			 .required(false)
+			 .takes_value(false)
+			)
 		.get_matches();
 
 
@@ -101,5 +108,6 @@ fn main() {
     let max_depth = matches.value_of("depth").unwrap().parse::<usize>().expect("Given depth cannot be parsed to an integer!");
     let machine_mode = matches.is_present("machine-readable");
     let same_device = matches.is_present("same-device");
-    q.execute(max_depth, machine_mode, same_device, config.color);
+    let ignore_hidden = matches.is_present("ignore-hidden");
+    q.execute(max_depth, machine_mode, ignore_hidden, same_device, config.color);
 }
