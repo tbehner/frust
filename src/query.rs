@@ -1,105 +1,30 @@
 use filter;
 use filter_tree;
+use ColorConfig;
+use formatter;
 use walkdir::WalkDir;
 use walkdir::DirEntry;
 use walkdir::WalkDirIterator;
 use parser;
 use nom::IResult;
 use nom::Needed;
-use std::fs;
 use pretty_bytes::converter::convert as pretty_bytes_convert;
-use std::time;
 use chrono::{Local, TimeZone};
 use mime_guess;
-use std::process::Command;
 use liquid;
 use liquid::{Renderable, Context, Value};
-use std::os::linux::fs::MetadataExt;
-use std::path::Path;
-use termion::{is_tty, color};
+use termion::{is_tty};
 use libc;
-
-fn format_mimetype(t: mime_guess::Mime, machine_readable: bool) -> String {
-    format!("{}", t)
-}
+use std::fs;
+use std::time;
+use std::path::Path;
+use std::ffi::OsStr;
+use std::os::unix::fs::FileTypeExt;
+use std::os::linux::fs::MetadataExt;
+use std::process::Command;
 
 fn stdout_is_tty() -> bool {
-    let is_tty = unsafe { libc::isatty(libc::STDOUT_FILENO as i32) } != 0;
-	return is_tty;
-}
-
-fn format_filetype(ft: fs::FileType, machine_readable: bool) -> String {
-    if ft.is_file() {
-        String::from("file")
-    } else if ft.is_dir() {
-        String::from("dir")
-    } else if ft.is_symlink() {
-        String::from("slink")
-    } else {
-        String::from("unkown")
-    }
-}
-
-fn format_filesize(size: u64, machine_readable: bool) -> String {
-    if machine_readable {
-        return format!("{}", size)
-    } else {
-        pretty_bytes_convert(size as f64)
-    }
-}
-
-fn format_systime(t: time::SystemTime, machine_readable: bool) -> String {
-    let duration = t.duration_since(time::UNIX_EPOCH).unwrap();
-    if machine_readable {
-        format!("{}", duration.as_secs())
-    } else {
-       format!("{}", Local.timestamp(duration.as_secs() as i64, 0).format("%F %T"))
-    }
-}
-
-fn format_name(dir_entry: &DirEntry, color: bool) -> String {
-    let path = dir_entry.path();
-    let default_format = format!("{}", path.to_str().unwrap());
-    if !color {
-        return default_format;
-    }
-
-    let filetype = dir_entry.file_type();
-
-    if filetype.is_file(){
-        match path.parent() {
-            Some(parent) => match path.file_name() {
-                Some(filename) => format!("{reset}{path_color}{path}/{filename_color}{filename}{reset}", 
-                                          reset=color::Fg(color::Reset),
-                                          path_color=color::Fg(color::Rgb(0, 51, 204)),
-                                          path=parent.to_str().unwrap(), 
-                                          filename_color=color::Fg(color::Reset),
-                                          filename=filename.to_str().unwrap()),
-                None => format!("{}", parent.to_str().unwrap()),
-            },
-            None => panic!("This should not happen!")
-        }
-    } else if filetype.is_dir() {
-        format!("{reset}{dircolor}{dirname}{reset}", 
-                        reset=color::Fg(color::Reset),
-                        dircolor=color::Fg(color::Rgb(0, 51, 204)),
-                        dirname=path.to_str().unwrap())
-    } else if filetype.is_symlink() {
-        match path.parent() {
-            Some(parent) => match path.file_name() {
-                Some(filename) => format!("{reset}{path_color}{path}/{symlink_color}{symlink}{reset}", 
-                                          reset=color::Fg(color::Reset),
-                                          path_color=color::Fg(color::Rgb(0, 51, 204)),
-                                          path=parent.to_str().unwrap(), 
-                                          symlink_color=color::Fg(color::Rgb(0, 255, 255)),
-                                          symlink=filename.to_str().unwrap()),
-                None => format!("{}", parent.to_str().unwrap()),
-            },
-            None => panic!("This should not happen!")
-        }
-    } else {
-        format!("{}", path.to_str().unwrap())
-    }
+    is_tty(&fs::File::create("/dev/stdout").unwrap())
 }
 
 pub struct Query {
@@ -137,28 +62,28 @@ impl Query {
         }
     }
 
-    fn print_attributes(&self, entry: &DirEntry, color: bool) {
+    fn print_attributes(&self, entry: &DirEntry, color_config: &Option<ColorConfig>, color_mode: bool) {
         let mut print_string = String::from("");
         for attribute in &self.attributes {
             let attr_str = match *attribute {
-                filter::Attribute::Name	    => format_name(entry, color),
+                filter::Attribute::Name	    => formatter::format_name(entry, color_config, color_mode),
                 filter::Attribute::Basename	=> format!("{}", entry.file_name().to_str().unwrap()),
-                filter::Attribute::Size	    => format_filesize(entry.metadata().unwrap().len(), self.machine_mode),
-                filter::Attribute::Mtime	=> format_systime(entry.metadata().unwrap().modified().unwrap(), self.machine_mode),
+                filter::Attribute::Size	    => formatter::format_filesize(entry.metadata().unwrap().len(), self.machine_mode),
+                filter::Attribute::Mtime	=> formatter::format_systime(entry.metadata().unwrap().modified().unwrap(), self.machine_mode),
                 filter::Attribute::Ctime	=> {
                     match entry.metadata().unwrap().created() {
-                        Ok(t)   => format_systime(t, self.machine_mode),
+                        Ok(t)   => formatter::format_systime(t, self.machine_mode),
                         Err(_)  => String::from("N/A"),
                     }},
                 filter::Attribute::Atime    => {
                     match entry.metadata().unwrap().accessed() {
-                        Ok(t)   => format_systime(t, self.machine_mode),
+                        Ok(t)   => formatter::format_systime(t, self.machine_mode),
                         Err(_)  => String::from("N/A"),
                     }},                
-                filter::Attribute::Filetype	=> format_filetype(entry.metadata().unwrap().file_type(), self.machine_mode),
+                filter::Attribute::Filetype	=> formatter::format_filetype(entry.metadata().unwrap().file_type(), self.machine_mode),
                 filter::Attribute::Mimetype	=> {
                     let filepath = format!("{}", entry.path().display());
-                    format_mimetype(mime_guess::guess_mime_type(filepath), self.machine_mode)
+                    formatter::format_mimetype(mime_guess::guess_mime_type(filepath), self.machine_mode)
                 },
                 filter::Attribute::Inode	=> format!("{}", entry.ino()),
             };
@@ -175,22 +100,22 @@ impl Query {
         let mut context = Context::new();
         context.set_val("name", Value::Str(String::from(dir_entry.path().to_str().unwrap())));
         context.set_val("basename", Value::Str(String::from(dir_entry.file_name().to_str().unwrap())));
-        context.set_val("size", Value::Str(format_filesize(dir_entry.metadata().unwrap().len(), self.machine_mode)));
-        context.set_val("mtime", Value::Str(format_systime(dir_entry.metadata().unwrap().modified().unwrap(), self.machine_mode)));
+        context.set_val("size", Value::Str(formatter::format_filesize(dir_entry.metadata().unwrap().len(), self.machine_mode)));
+        context.set_val("mtime", Value::Str(formatter::format_systime(dir_entry.metadata().unwrap().modified().unwrap(), self.machine_mode)));
         let ctime = match dir_entry.metadata().unwrap().created() {
-                Ok(t)   => format_systime(t, self.machine_mode),
+                Ok(t)   => formatter::format_systime(t, self.machine_mode),
                 Err(_)  => String::from("N/A"),
         };
         context.set_val("ctime", Value::Str(ctime));
 
         let atime = match dir_entry.metadata().unwrap().accessed() {
-                Ok(t)   => format_systime(t, self.machine_mode),
+                Ok(t)   => formatter::format_systime(t, self.machine_mode),
                 Err(_)  => String::from("N/A"),
             };
         context.set_val("atime", Value::Str(atime));
 
-        context.set_val("filetype", Value::Str(format_filetype(dir_entry.metadata().unwrap().file_type(), self.machine_mode)));
-        context.set_val("mimetype", Value::Str(format_mimetype(mime_guess::guess_mime_type(dir_entry.path().to_str().unwrap()), self.machine_mode)));
+        context.set_val("filetype", Value::Str(formatter::format_filetype(dir_entry.metadata().unwrap().file_type(), self.machine_mode)));
+        context.set_val("mimetype", Value::Str(formatter::format_mimetype(mime_guess::guess_mime_type(dir_entry.path().to_str().unwrap()), self.machine_mode)));
         context.set_val("inode", Value::Str(format!("{}", dir_entry.ino())));
         return context;
     }
@@ -210,7 +135,7 @@ impl Query {
         }
     }
 
-    fn raw_walk(&self, dir: &String, max_depth: usize, color: bool) {
+    fn raw_walk(&self, dir: &String, max_depth: usize, color_config: &Option<ColorConfig>, color_mode: bool) {
         let dir_iter = WalkDir::new(dir).max_depth(max_depth).into_iter();
 
         'files: for entry in dir_iter {
@@ -224,12 +149,12 @@ impl Query {
             if self.filters.test(&entry) != true {
                     continue 'files;
             }
-            self.print_attributes(&entry, color);
+            self.print_attributes(&entry, color_config, color_mode);
             self.run_command(&entry);
         }
     }
 
-    fn dev_walk(&self, dir: &String, max_depth: usize, color: bool){
+    fn dev_walk(&self, dir: &String, max_depth: usize, color_config: &Option<ColorConfig>, color_mode: bool){
         let dev_id = match WalkDir::new(dir).into_iter().next() {
             Some(e) => {
                 let dir_entry = e.expect("Failed to open directory entry.",);
@@ -252,23 +177,24 @@ impl Query {
             if self.filters.test(&entry) != true {
                     continue 'files;
             }
-            self.print_attributes(&entry, color);
+            self.print_attributes(&entry, color_config, color_mode);
             self.run_command(&entry);
         }
     }
 
 
-    pub fn execute(&mut self, max_depth: usize, machine_mode: bool, same_device: bool) {
-        let color = stdout_is_tty();
+    pub fn execute(&mut self, max_depth: usize, machine_mode: bool, same_device: bool, color_config: Option<ColorConfig>) {
+        let color_mode = stdout_is_tty();
+
         if machine_mode {
             self.machine_mode = true
         }
 
         for dir in &self.directories {
             if same_device {
-                self.dev_walk(dir, max_depth, color);
+                self.dev_walk(dir, max_depth, &color_config, color_mode);
             } else {
-                self.raw_walk(dir, max_depth, color);
+                self.raw_walk(dir, max_depth, &color_config, color_mode);
             }
         }
     }
