@@ -10,12 +10,15 @@ extern crate clap;
 extern crate walkdir;
 extern crate frustlib;
 extern crate regex;
-// #[macro_use] extern crate log;
-// extern crate env_logger;
+extern crate toml;
+extern crate serde;
 
 use regex::Regex;
 use clap::{App, Arg};
 use frustlib::query::Query;
+use std::fs::File;
+use std::io::prelude::*;
+use frustlib::Config;
 
 fn is_integer(inp: String) -> Result<(), String> {
     match inp.parse::<u32>() {
@@ -33,8 +36,8 @@ fn check_semicolon(inp: &mut String){
 
 fn main() {
     let matches = App::new("frust")
-        .version("0.0.1")
-        .about("Does great stuff, in the future, hopefully...")
+        .version("0.0.2")
+        .about("find alternative with SQL-like syntax.")
         .author("Timm Behner, Martin Clauß")
         .arg(Arg::with_name("QUERY")
              .help("find files according to the query the directory tree")
@@ -58,14 +61,44 @@ fn main() {
              .required(false)
              .takes_value(false)
         )
-        .arg(Arg::with_name("same-device")
-             .short("s")
-             .long("same-device")
-             .help("Don't descend directories on other filesystems.")
-             .required(false)
-             .takes_value(false)
-         )
-        .get_matches();
+		.arg(Arg::with_name("same-device")
+			 .short("s")
+			 .long("same-device")
+			 .help("Don't descend directories on other filesystems.")
+			 .required(false)
+			 .takes_value(false)
+			)
+		.arg(Arg::with_name("ignore-hidden")
+			 .short("i")
+			 .long("ignore-hidden")
+			 .help("Ignore hidden files and directories.")
+			 .required(false)
+			 .takes_value(false)
+			)
+		.arg(Arg::with_name("no-color")
+			 .short("c")
+			 .long("no-color")
+			 .help("Non colored output.")
+			 .required(false)
+			 .takes_value(false)
+			)
+		.get_matches();
+
+
+    let mut config_contents = String::new();
+    match File::open("/home/timm.behner/.config/frust/config.toml") {
+        Ok(mut config_file) => {
+            config_file.read_to_string(&mut config_contents).unwrap();
+        },
+        Err(_) => {
+            config_contents = String::from("[color]");
+        },
+    }
+
+	let config: Config = match toml::from_str(&config_contents) {
+        Ok(c) => c,
+        Err(e) => panic!("Could not parse config {}", e),
+    };
 
     let mut q = match matches.value_of("QUERY") {
         Some(query_inp) => {
@@ -82,5 +115,7 @@ fn main() {
     let max_depth = matches.value_of("depth").unwrap().parse::<usize>().expect("Given depth cannot be parsed to an integer!");
     let machine_mode = matches.is_present("machine-readable");
     let same_device = matches.is_present("same-device");
-    q.execute(max_depth, machine_mode, same_device);
+    let ignore_hidden = matches.is_present("ignore-hidden");
+    let color = !matches.is_present("no-color");
+    q.execute(max_depth, machine_mode, ignore_hidden, same_device, color, config.color);
 }

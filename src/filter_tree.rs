@@ -7,6 +7,8 @@ use name_filter::EqualBasenameFilter;
 use size_filter::SizeFilter;
 use time_filter::TimeFilter;
 use filetype_filter::FiletypeFilter;
+use uid_filter::UidFilter;
+use gid_filter::GidFilter;
 use walkdir::DirEntry;
 
 #[derive(Debug)]
@@ -60,6 +62,12 @@ pub fn create_filter(inp: FilterTuple) -> Box<Filter> {
         },
         Attribute::Filetype => {
             Box::new(FiletypeFilter::new(inp.parameter.as_str()))
+        },
+        Attribute::Uid => {
+            Box::new(UidFilter::new(inp.operator, inp.parameter.parse::<u32>().unwrap()))
+        },
+        Attribute::Gid => {
+            Box::new(GidFilter::new(inp.operator, inp.parameter.parse::<u32>().unwrap()))
         },
         _               => panic!("Not yet implemented!"),
     }
