@@ -9,8 +9,7 @@ use std::time;
 use chrono::{Local, TimeZone};
 use ColorConfig;
 use std::ffi::OsStr;
-use std::os::unix::fs::FileTypeExt;
-use std::os::linux::fs::MetadataExt;
+use std::os::unix::fs::{FileTypeExt, MetadataExt};
 
 struct RgbColor {
     red: u8,
