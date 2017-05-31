@@ -19,6 +19,7 @@ use frustlib::query::Query;
 use std::fs::File;
 use std::io::prelude::*;
 use frustlib::Config;
+use std::env;
 
 fn is_integer(inp: String) -> Result<(), String> {
     match inp.parse::<u32>() {
@@ -86,11 +87,19 @@ fn main() {
 
 
     let mut config_contents = String::new();
-    match File::open("/home/timm.behner/.config/frust/config.toml") {
-        Ok(mut config_file) => {
-            config_file.read_to_string(&mut config_contents).unwrap();
+    match env::home_dir() {
+        Some(mut home_path) => {
+            home_path.push(".config/frust/config.toml");
+            match File::open(home_path){
+                Ok(mut config_file) => {
+                    config_file.read_to_string(&mut config_contents).unwrap();
+                },
+                Err(_) => {
+                    config_contents = String::from("[color]");
+                },
+            }
         },
-        Err(_) => {
+        None => {
             config_contents = String::from("[color]");
         },
     }
