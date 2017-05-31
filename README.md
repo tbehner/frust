@@ -50,7 +50,7 @@ The attributes are a comma seperated list of the following currently supported a
   * atime (last access time)
   * ctime (creation time)
   * inode
-  * filetype (either file, directory or link)
+  * type (either file, directory or link)
   * mimetype
 
 These are also the attributes which are supported for use in the filter expression.
@@ -104,6 +104,9 @@ frust "where name '\.rar$' and mtime < -1D exec rm {{name}}"
 ```
 deletes all rar-archives which are older than a day or
 ```
-frust "where name '\.jpg$' exec cp {{name}} {{name | remove_first: "." | prepend: /media/backup | append: ".backup"}}" 
+frust "where name '\.jpg$' exec cp {{name}} {{name | remove_first: '.' | prepend: /media/backup | append: '.backup'}}" 
 ```
 moves all jpg to `/media/backup` and appends the file extension `backup`.
+
+frust has a colored output and colors can be configured in '$HOME/.config/frust/config.toml' and an example for a configuration file is given in 'example_config.toml'.
+For best results use a terminal emulator with truecolor support. To switch off all colors use the '--no-color' option.
