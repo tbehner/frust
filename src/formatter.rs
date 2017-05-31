@@ -1,5 +1,5 @@
 use walkdir::DirEntry;
-use termion::{is_tty, color};
+use termion::color;
 use std::path::Path;
 use std::fmt;
 use mime_guess;
@@ -8,8 +8,7 @@ use pretty_bytes::converter::convert as pretty_bytes_convert;
 use std::time;
 use chrono::{Local, TimeZone};
 use ColorConfig;
-use std::ffi::OsStr;
-use std::os::unix::fs::{FileTypeExt, MetadataExt};
+use std::os::unix::fs::FileTypeExt;
 
 struct RgbColor {
     red: u8,
@@ -18,10 +17,6 @@ struct RgbColor {
 }
 
 impl RgbColor {
-    fn new(r: u8, g: u8, b: u8) -> RgbColor {
-        RgbColor{red: r, green: g, blue: b}
-    }
-
     fn from_str(color_string: &str) -> RgbColor {
         let red = u8::from_str_radix(&color_string[0..2], 16).expect(&format!("Could not parse red value in color {}", color_string));
         let green = u8::from_str_radix(&color_string[2..4], 16).expect(&format!("Could not parse green value in color {}", color_string));

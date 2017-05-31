@@ -9,21 +9,13 @@ use walkdir::WalkDirIterator;
 use parser;
 use nom::IResult;
 use nom::Needed;
-use pretty_bytes::converter::convert as pretty_bytes_convert;
-use chrono::{Local, TimeZone};
 use mime_guess;
 use liquid;
 use liquid::{Renderable, Context, Value};
 use termion::{is_tty};
-use libc;
 use std::fs;
-use std::time;
-use std::path::Path;
-use std::ffi::OsStr;
-use std::os::unix::fs::FileTypeExt;
 use std::os::unix::fs::MetadataExt;
 use std::process::Command;
-use regex::Regex;
 
 fn stdout_is_tty() -> bool {
     is_tty(&fs::File::create("/dev/stdout").unwrap())

@@ -5,7 +5,6 @@ use std::time::{SystemTime, UNIX_EPOCH, Duration};
 use nom::IResult;
 use nom::Needed;
 use chrono;
-use chrono::NaiveTime;
 use chrono::prelude::*;
 
 enum RelativeTimeUnit {
@@ -97,7 +96,7 @@ pub struct TimeFilter {
 fn parse_abs_date(param: &str) -> Option<chrono::DateTime<Local>> {
     let d : Option<chrono::DateTime<Local>> = match onlydate(param.as_bytes()) {
         IResult::Done(_, q)     => Some(q),
-        IResult::Error(e)       => None,
+        IResult::Error(_)       => None,
         IResult::Incomplete(n)  => match n {
                 Needed::Unknown => panic!("Need more input, but I haven't got a clou how much!"),
                 Needed::Size(n) => panic!("Need {}bytes more input!", n),
@@ -110,7 +109,7 @@ fn parse_abs_date(param: &str) -> Option<chrono::DateTime<Local>> {
 fn parse_abs_time(param: &str) -> Option<chrono::DateTime<Local>> {
     let t : Option<chrono::DateTime<Local>> = match onlytime(param.as_bytes()) {
         IResult::Done(_, q)     => Some(q),
-        IResult::Error(e)       => None,
+        IResult::Error(_)       => None,
         IResult::Incomplete(n)  => match n {
                 Needed::Unknown => panic!("Need more input, but I haven't got a clou how much!"),
                 Needed::Size(n) => panic!("Need {}bytes more input!", n),
@@ -136,7 +135,7 @@ impl TimeFilter {
         // Oh, and every month has 30 days....
         let reltime: Option<RelativeTimeTuple> = match reltime_parameter(param.as_bytes()) {
             IResult::Done(_, q) => Some(q),
-            IResult::Error(e)   => None,
+            IResult::Error(_)   => None,
             IResult::Incomplete(n)  => match n {
                     Needed::Unknown => panic!("Need more input, but I haven't got a clou how much!"),
                     Needed::Size(n) => panic!("Need {}bytes more input!", n),
@@ -173,9 +172,9 @@ impl TimeFilter {
                 _    => false,
             };
         } else {
-            let mut abs_datetime = parse_abs_datetime(param);
-            let mut abs_date = parse_abs_date(param);
-            let mut abs_time = parse_abs_time(param);
+            let abs_datetime = parse_abs_datetime(param);
+            let abs_date = parse_abs_date(param);
+            let abs_time = parse_abs_time(param);
             if abs_datetime.is_some(){
                 offset = abs_datetime.unwrap().timestamp() as u64;
                 epsilon = 60 as u64;
