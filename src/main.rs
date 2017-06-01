@@ -41,7 +41,19 @@ fn main() {
         .about("find alternative with SQL-like syntax.")
         .author("Timm Behner, Martin Clauß")
         .arg(Arg::with_name("QUERY")
-             .help("find files according to the query the directory tree")
+             .help(r#"Find files according to the query the directory tree.
+[attributes] from [directories] where [conditions] exec [command];
+Currently supported attributes and comparison operators: 
+  * name (==, ~)
+  * basename (==, ~)
+  * size (==, >, >=, <=, <)
+  * mtime (==, >, >=, <=, <)
+  * atime (==, >, >=, <=, <)
+  * ctime (==, >, >=, <=, <)
+  * inode (==)
+  * filetype (==)
+  * mimetype (==)
+                   "#)
              .index(1)
              .required(false)
          )
