@@ -1,5 +1,6 @@
 use filter::Filter;
 use walkdir::DirEntry;
+use std::process;
 
 enum Filetype {
     File,
@@ -23,7 +24,10 @@ impl FiletypeFilter {
             "link" => Filetype::Link,
             "slink" => Filetype::Link,
             "symlink" => Filetype::Link,
-            _   => panic!("{} is not a valid filetype. Choose either of directory, link or file.", ft_string),
+            _   => {
+                eprintln!("{} is not a valid filetype. Choose either of directory, link or file.", ft_string);
+                process::exit(1);
+            },
         };
         FiletypeFilter{filetype: t}
     }

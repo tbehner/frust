@@ -9,6 +9,7 @@ use std::time;
 use chrono::{Local, TimeZone};
 use ColorConfig;
 use std::os::unix::fs::FileTypeExt;
+use std::process;
 
 struct RgbColor {
     red: u8,
@@ -32,6 +33,16 @@ impl RgbColor {
 impl fmt::Display for RgbColor {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "rgb({}, {}, {})", self.red, self.green, self.blue)
+    }
+}
+
+fn get_path_name(p: &Path) -> String {
+    match p.to_str() {
+        Some(s) => format!("{}", s),
+        None    => {
+            eprintln!("Error: UTF-8 Error");
+            format!("")
+        },
     }
 }
 
@@ -80,12 +91,21 @@ pub fn format_path<P: color::Color, C: color::Color>(path: &Path, parent_color: 
             Some(filename) => format!("{reset}{path_color}{path}/{filename_color}{filename}{reset}", 
                                           reset=color::Fg(color::Reset),
                                           path_color=parent_color,
-                                          path=parent.to_str().unwrap(), 
+                                          path=get_path_name(parent), 
                                           filename_color=filename_color,
-                                          filename=filename.to_str().unwrap()),
-            None => format!("{}", parent.to_str().unwrap()),
+                                          filename=match filename.to_str() {
+                                                Some(f) => f,
+                                                None    => {
+                                                    eprintln!("Error: UTF-8 Error");
+                                                    ""
+                                                },
+                                          }),
+            None => format!("{}", get_path_name(parent)),
         },
-        None => panic!("This should not happen!")
+        None => {
+            eprintln!("This should not happen!");
+            process::exit(1);
+        },
     }
 }
 
@@ -93,14 +113,14 @@ pub fn format_dir<P: color::Color>(path: &Path, dir_color: color::Fg<P>) -> Stri
     format!("{reset}{dircolor}{dirname}{reset}", 
                                 reset=color::Fg(color::Reset),
                                 dircolor=dir_color,
-                                dirname=path.to_str().unwrap())
+                                dirname=get_path_name(path))
 }
 
 
 
 pub fn format_name(dir_entry: &DirEntry, color_config: &Option<ColorConfig>, color_mode: bool) -> String {
     let path = dir_entry.path();
-    let default_format = format!("{}", path.to_str().unwrap());
+    let default_format = get_path_name(path);
     if !color_mode {
         return default_format;
     }
@@ -148,7 +168,7 @@ pub fn format_name(dir_entry: &DirEntry, color_config: &Option<ColorConfig>, col
                         None => format_dir(path, dir_color),
                     }
                 } else {
-                    format!("{}", path.to_str().unwrap())
+                    format!("{}", get_path_name(path))
                 }
             },
             None         => { 
@@ -183,7 +203,7 @@ pub fn format_name(dir_entry: &DirEntry, color_config: &Option<ColorConfig>, col
                         None => format_dir(path, dir_color),
                     }
                 } else {
-                    format!("{}", path.to_str().unwrap())
+                    format!("{}", get_path_name(path))
                 }
             },
     },
@@ -201,7 +221,7 @@ pub fn format_name(dir_entry: &DirEntry, color_config: &Option<ColorConfig>, col
             } else if filetype.is_dir() {
                 format_dir(path, dir_color)
             } else {
-                format!("{}", path.to_str().unwrap())
+                format!("{}", get_path_name(path))
             }        
         },
     }

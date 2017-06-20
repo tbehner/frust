@@ -3,6 +3,7 @@ use filter::Filter;
 use walkdir::DirEntry;
 use nom::IResult;
 use nom::Needed;
+use std::process;
 
 enum SizeUnit {
     Bytes,
@@ -35,7 +36,10 @@ named!(float_number<f64>,
            float: re_bytes_find!("-?[0-9]+(\\.[0-9]*)?") >>
            (match String::from_utf8_lossy(float).into_owned().parse::<f64>() {
                Ok(f)  => f,
-               Err(e) => panic!("Could not parse size {}", e),
+               Err(e) => {
+                   eprintln!("Could not parse size {}", e);
+                   process::exit(1);
+               },
             }
            )
        )
@@ -57,10 +61,19 @@ impl SizeFilter {
     pub fn new(op: filter::CompOp, size_param: &str) -> SizeFilter {
         let stuple = match size_parameter(size_param.as_bytes()) {
             IResult::Done(_, q) => q,
-            IResult::Error(e)   => panic!("Size filter syntax error {}", e),
+            IResult::Error(e)   => {
+                eprintln!("Size filter syntax error {}", e);
+                process::exit(1);
+            },
             IResult::Incomplete(n)  => match n {
-                    Needed::Unknown => panic!("Need more input, but I haven't got a clou how much!"),
-                    Needed::Size(n) => panic!("Need {}bytes more input!", n),
+                    Needed::Unknown => {
+                        eprintln!("Need more input, but I haven't got a clou how much!");
+                        process::exit(1);
+                    },
+                    Needed::Size(n) => {
+                        eprintln!("Need {}bytes more input!", n);
+                        process::exit(1);
+                    },
                 },
         };
         let bytesize = match stuple.unit {
@@ -82,7 +95,10 @@ impl Filter for SizeFilter {
             filter::CompOp::Equal        => dir_entry.metadata().unwrap().len() == self.size,
             filter::CompOp::GreaterEqual => dir_entry.metadata().unwrap().len() >= self.size,
             filter::CompOp::Greater      => dir_entry.metadata().unwrap().len() > self.size,
-            _                            => panic!("Operator {:?} not covered for attribute size!", self.comp_op),
+            _                            => {
+                eprintln!("Operator {:?} not covered for attribute size!", self.comp_op);
+                process::exit(1);
+            },
         }
     }
 }

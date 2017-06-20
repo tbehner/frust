@@ -6,6 +6,7 @@ use nom::IResult;
 use nom::Needed;
 use chrono;
 use chrono::prelude::*;
+use std::process;
 
 enum RelativeTimeUnit {
     Second,
@@ -42,7 +43,10 @@ named!(integer_number<i64>,
            int: re_bytes_find!("-?[0-9]+") >>
            (match String::from_utf8_lossy(int).into_owned().parse::<i64>() {
                Ok(i) => i,
-               Err(e) => panic!("Could not parse to integer: {}", e),
+               Err(e) => {
+                   eprintln!("Could not parse to integer: {}", e);
+                   process::exit(1);
+               },
             }
            )
        )
@@ -79,7 +83,10 @@ named!(onlytime<chrono::DateTime<Local>>,
         (
             match Local::now().with_hour(String::from_utf8_lossy(hour).into_owned().parse::<u32>().unwrap()) {
                 Some(t) => t.with_minute(String::from_utf8_lossy(minute).into_owned().parse::<u32>().unwrap()).unwrap(),
-                None    => panic!("Error setting time for today!"),
+                None    => {
+                    eprintln!("Error setting time for today!");
+                    process::exit(1);
+                },
             }
         )
       )
@@ -98,8 +105,14 @@ fn parse_abs_date(param: &str) -> Option<chrono::DateTime<Local>> {
         IResult::Done(_, q)     => Some(q),
         IResult::Error(_)       => None,
         IResult::Incomplete(n)  => match n {
-                Needed::Unknown => panic!("Need more input, but I haven't got a clou how much!"),
-                Needed::Size(n) => panic!("Need {}bytes more input!", n),
+                Needed::Unknown => {
+                    eprintln!("Need more input, but I haven't got a clou how much!");
+                    process::exit(1);
+                },
+                Needed::Size(n) => {
+                    eprintln!("Need {}bytes more input!", n);
+                    process::exit(1);
+                },
             },
     };
 
@@ -111,8 +124,14 @@ fn parse_abs_time(param: &str) -> Option<chrono::DateTime<Local>> {
         IResult::Done(_, q)     => Some(q),
         IResult::Error(_)       => None,
         IResult::Incomplete(n)  => match n {
-                Needed::Unknown => panic!("Need more input, but I haven't got a clou how much!"),
-                Needed::Size(n) => panic!("Need {}bytes more input!", n),
+                Needed::Unknown => {
+                    eprintln!("Need more input, but I haven't got a clou how much!");
+                    process::exit(1);
+                },
+                Needed::Size(n) => {
+                    eprintln!("Need {}bytes more input!", n);
+                    process::exit(1);
+                },
             },
     };
 
@@ -137,8 +156,14 @@ impl TimeFilter {
             IResult::Done(_, q) => Some(q),
             IResult::Error(_)   => None,
             IResult::Incomplete(n)  => match n {
-                    Needed::Unknown => panic!("Need more input, but I haven't got a clou how much!"),
-                    Needed::Size(n) => panic!("Need {}bytes more input!", n),
+                    Needed::Unknown => {
+                        eprintln!("Need more input, but I haven't got a clou how much!");
+                        process::exit(1);
+                    },
+                    Needed::Size(n) => {
+                        eprintln!("Need {}bytes more input!", n);
+                        process::exit(1);
+                    },
                 },
         };
 
@@ -185,7 +210,8 @@ impl TimeFilter {
                 offset = abs_time.unwrap().timestamp() as u64;
                 epsilon = 60 as u64;
             } else {
-                panic!("Could not parse absolute datetime format {}. Supported datetime formats are: YYYY-MM-DD HH:MM, YYYY-MM-DD, HH:MM", param);
+                eprintln!("Could not parse absolute datetime format {}. Supported datetime formats are: YYYY-MM-DD HH:MM, YYYY-MM-DD, HH:MM", param);
+                process::exit(1);
             }
         }
         TimeFilter{attribute: attribute, comp_op: comp_op, timestamp: offset, operator_flip: flip, epsilon: epsilon }
@@ -197,13 +223,22 @@ impl TimeFilter {
             filter::Attribute::Mtime => dir_entry.metadata().unwrap().modified().unwrap().duration_since(UNIX_EPOCH).unwrap(),
             filter::Attribute::Atime => match dir_entry.metadata().unwrap().accessed(){
                 Ok(t) => t.duration_since(UNIX_EPOCH).unwrap(),
-                Err(e) => panic!("Atime error: {}", e),
+                Err(e) => {
+                    eprintln!("Atime error: {}", e);
+                    process::exit(1);
+                },
             },
             filter::Attribute::Ctime => match dir_entry.metadata().unwrap().created(){
                 Ok(t) => t.duration_since(UNIX_EPOCH).unwrap(),
-                Err(e) => panic!("Ctime error: {}", e),
+                Err(e) => {
+                    eprintln!("Ctime error: {}", e);
+                    process::exit(1);
+                },
             },
-            _ => panic!("{:?} is not a type of time.", self.attribute),
+            _ => {
+                eprintln!("{:?} is not a type of time.", self.attribute);
+                process::exit(1);
+            },
         }
     }
 }
@@ -222,7 +257,10 @@ impl Filter for TimeFilter {
             filter::CompOp::LowerEqual   => self.get_attribute(dir_entry) <= Duration::new(self.timestamp, 0),
             filter::CompOp::Greater      => self.get_attribute(dir_entry) >  Duration::new(self.timestamp, 0),
             filter::CompOp::GreaterEqual => self.get_attribute(dir_entry) >= Duration::new(self.timestamp, 0),
-            _ => panic!("Comparison operator {:?} is not supported for relative time comparisons.", self.comp_op),
+            _ => {
+                eprintln!("Comparison operator {:?} is not supported for relative time comparisons.", self.comp_op);
+                process::exit(1);
+            },
         };
         return if self.operator_flip { !res } else { res }
     }

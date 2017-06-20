@@ -15,6 +15,7 @@ use liquid::{Renderable, Context, Value};
 use termion::{is_tty};
 use std::fs;
 use std::os::unix::fs::MetadataExt;
+use std::process;
 use std::process::Command;
 
 fn stdout_is_tty() -> bool {
@@ -51,14 +52,24 @@ impl Query {
         match parser::query(inp.as_bytes()){
             IResult::Done(leftovers, q)     => {
                 if leftovers.len() > 1 {
-                    panic!("Could not parse from here -> {}\nDid you make a typo?\n\n", String::from_utf8_lossy(leftovers).into_owned());
+                    eprintln!("Could not parse from here -> {}\nDid you make a typo?\n\n", String::from_utf8_lossy(leftovers).into_owned());
+                    process::exit(1);
                 };
                 q
             },
-            IResult::Error(e)               => panic!("Syntax error {}", e),
+            IResult::Error(e)               => {
+                eprintln!("Syntax error {}", e);
+                process::exit(1);
+            },
             IResult::Incomplete(n)          => match n {
-                    Needed::Unknown         => panic!("Need more input, but I haven't got a clou how much!"),
-                    Needed::Size(n)         => panic!("Need {}bytes more input!", n),
+                    Needed::Unknown         => {
+                        eprintln!("Need more input, but I haven't got a clou how much!");
+                        process::exit(1);
+                    },
+                    Needed::Size(n)         => {
+                        eprintln!("Need {}bytes more input!", n);
+                        process::exit(1);
+                    },
                 },
         }
     }
@@ -132,7 +143,10 @@ impl Query {
                 let output = template.render(&mut context);
                 match output {
                     Ok(res) => Command::new("sh").arg("-c").arg(res.unwrap()).spawn().expect("Failed to start command."),
-                    Err(e)    => panic!("Command template error: {}", e),
+                    Err(e)    => {
+                        eprintln!("Command template error: {}", e);
+                        process::exit(1);
+                    },
                 };
             },
         }
@@ -145,7 +159,7 @@ impl Query {
             let entry = match entry{
                 Ok(e)  => e,
                 Err(e) => {
-                    println!("Error: {}", e);
+                    eprintln!("Error: {}", e);
                     continue 'files;
                 }
             };
@@ -161,7 +175,7 @@ impl Query {
         let entry = match entry{
             Ok(e)  => e,
             Err(e) => {
-                println!("Error: {}", e);
+                eprintln!("Error: {}", e);
                 return;
             }
         };
@@ -179,7 +193,10 @@ impl Query {
                 let dir_entry = e.expect("Failed to open directory entry.",);
                 dir_entry.metadata().map(|m| m.dev()).expect(&format!("Could not get device id from {:?}.", dir_entry)) 
             }
-            None => panic!("{} not found!", dir)
+            None => {
+                eprintln!("{} not found!", dir);
+                process::exit(1);
+            },
         };
 
 
@@ -200,7 +217,8 @@ impl Query {
                 self.process_entry(entry, color_config, color_mode);
             }
         } else {
-            panic!("Implementation error: Use raw_walk instead!");
+            eprintln!("Implementation error: Use raw_walk instead!");
+            process::exit(1);
         }
     }
 

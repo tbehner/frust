@@ -10,6 +10,7 @@ use filetype_filter::FiletypeFilter;
 use uid_filter::UidFilter;
 use gid_filter::GidFilter;
 use walkdir::DirEntry;
+use std::process;
 
 #[derive(Debug)]
 #[derive(PartialEq)]
@@ -37,7 +38,10 @@ pub fn create_filter(inp: FilterTuple) -> Box<Filter> {
                 CompOp::Equal => Box::new(EqualNameFilter::new(inp.parameter.as_str())),
                 CompOp::Like => Box::new(RegexFilter::new(&inp)),
                 CompOp::Unlike => Box::new(RegexFilter::new(&inp)),
-                _            => panic!("Operator is not implemented for attribute."),
+                _            => {
+                    eprintln!("Operator is not implemented for attribute.");
+                    process::exit(1);
+                },
             }
         },
         Attribute::Basename => {
@@ -45,7 +49,10 @@ pub fn create_filter(inp: FilterTuple) -> Box<Filter> {
                 CompOp::Equal => Box::new(EqualBasenameFilter::new(inp.parameter.as_str())),
                 CompOp::Like => Box::new(RegexFilter::new(&inp)),
                 CompOp::Unlike => Box::new(RegexFilter::new(&inp)),
-                _            => panic!("Operator is not implemented for attribute."),
+                _            => {
+                    eprintln!("Operator is not implemented for attribute.");
+                    process::exit(1);
+                }
             }
         },
         Attribute::Size => {
@@ -69,7 +76,10 @@ pub fn create_filter(inp: FilterTuple) -> Box<Filter> {
         Attribute::Gid => {
             Box::new(GidFilter::new(inp.operator, inp.parameter.parse::<u32>().unwrap()))
         },
-        _               => panic!("Not yet implemented!"),
+        _               => {
+            eprintln!("Not yet implemented!");
+            process::exit(1);
+        },
     }
 }
 
@@ -83,15 +93,18 @@ impl FilterTree {
     pub fn new(lhs: Option<FilterTuple>, op: Option<LogicOp>, rhs: Option<Box<FilterTree>>) -> FilterTree {
         if lhs.is_none() {
             if op.is_some() || rhs.is_some() {
-                panic!("Cannot have an expression without a left hand side!");
+                eprintln!("Cannot have an expression without a left hand side!");
+                process::exit(1);
             }
             return FilterTree{lhs: None, lop: None, rhs: None};
         }
         if op.is_none() && rhs.is_some() {
-            panic!("Two logic expressions have to be connected by an logic operator!");
+            eprintln!("Two logic expressions have to be connected by an logic operator!");
+            process::exit(1);
         }
         if op.is_some() && rhs.is_none() {
-            panic!("Right hand side is missing!");
+            eprintln!("Right hand side is missing!");
+            process::exit(1);
         }
         FilterTree{lhs: Some(create_filter(lhs.unwrap())), lop: op, rhs: rhs}
     }

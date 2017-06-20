@@ -2,6 +2,7 @@ use filter;
 use filter::Filter;
 use walkdir::DirEntry;
 use std::os::unix::fs::MetadataExt;
+use std::process;
 
 pub struct UidFilter {
     uid: u32,
@@ -19,7 +20,10 @@ impl Filter for UidFilter {
         match self.comp_op {
             filter::CompOp::Equal => self.uid == dir_entry.metadata().unwrap().uid(),
             filter::CompOp::Unequal => self.uid != dir_entry.metadata().unwrap().uid(),
-            _                       => panic!("Operator {:?} not covered for attribute uid!", self.comp_op),
+            _                       => {
+                eprintln!("Operator {:?} not covered for attribute uid!", self.comp_op);
+                process::exit(1);
+            },
         }
     }
 }

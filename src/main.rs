@@ -20,6 +20,7 @@ use std::fs::File;
 use std::io::prelude::*;
 use frustlib::Config;
 use std::env;
+use std::process;
 
 fn is_integer(inp: String) -> Result<(), String> {
     match inp.parse::<u32>() {
@@ -118,7 +119,10 @@ Currently supported attributes and comparison operators:
 
 	let config: Config = match toml::from_str(&config_contents) {
         Ok(c) => c,
-        Err(e) => panic!("Could not parse config {}", e),
+        Err(e) => {
+            eprintln!("Could not parse config {}", e);
+            process::exit(1);
+        },
     };
 
     let mut q = match matches.value_of("QUERY") {
