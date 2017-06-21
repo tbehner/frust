@@ -112,8 +112,8 @@ impl Query {
     fn setup_context(&self, dir_entry: &DirEntry) -> Context {
         // TODO does this need speed improvement? All attributes will be needed rarely...
         let mut context = Context::new();
-        context.set_val("name", Value::Str(String::from(dir_entry.path().to_str().unwrap())));
-        context.set_val("basename", Value::Str(String::from(dir_entry.file_name().to_str().unwrap())));
+        context.set_val("name", Value::Str(String::from( dir_entry.path().to_str().unwrap_or("N/A"))));
+        context.set_val("basename", Value::Str(String::from(dir_entry.file_name().to_str().unwrap_or("N/A"))));
         context.set_val("size", Value::Str(formatter::format_filesize(dir_entry.metadata().unwrap().len(), self.machine_mode)));
         context.set_val("mtime", Value::Str(formatter::format_systime(dir_entry.metadata().unwrap().modified().unwrap(), self.machine_mode)));
         let ctime = match dir_entry.metadata().unwrap().created() {
@@ -129,7 +129,7 @@ impl Query {
         context.set_val("atime", Value::Str(atime));
 
         context.set_val("type", Value::Str(formatter::format_filetype(dir_entry.metadata().unwrap().file_type(), self.machine_mode)));
-        context.set_val("mimetype", Value::Str(formatter::format_mimetype(mime_guess::guess_mime_type(dir_entry.path().to_str().unwrap()), self.machine_mode)));
+        context.set_val("mimetype", Value::Str(formatter::format_mimetype(mime_guess::guess_mime_type(dir_entry.path().to_str().unwrap_or("N/A")), self.machine_mode)));
         context.set_val("inode", Value::Str(format!("{}", dir_entry.ino())));
         return context;
     }
