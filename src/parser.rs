@@ -72,7 +72,7 @@ named!(str_paramter,
        );
 named!(date_parameter, re_bytes_find!("(([0-9]{4}-[0-9]{2}-[0-9]{2})? ?[0-9]{1,2}:[0-9]{2})|([0-9]{4}-[0-9]{2}-[0-9]{2})"));
 
-named!(parameter, alt!(num_paramter | str_paramter | date_parameter));
+named!(parameter, alt!(str_paramter | date_parameter | num_paramter));
 
 named!(filter<filter_tree::FilterTuple>, 
        do_parse!(
